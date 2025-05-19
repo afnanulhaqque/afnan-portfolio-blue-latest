@@ -15,6 +15,7 @@ const Admin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Data states
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -126,6 +127,7 @@ const Admin: React.FC = () => {
   // Handle project operations
   const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
       const projectData = {
         ...projectForm,
@@ -133,20 +135,25 @@ const Admin: React.FC = () => {
       };
 
       if (editingId) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('projects')
           .update(projectData)
           .eq('id', editingId);
+        
+        if (updateError) throw updateError;
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('projects')
           .insert([projectData]);
+        
+        if (insertError) throw insertError;
       }
 
       setProjectForm({ title: '', description: '', image_url: '', tags: '', link: '' });
       setEditingId(null);
       fetchAllData();
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message);
       console.error('Error saving project:', error);
     }
   };
@@ -154,16 +161,21 @@ const Admin: React.FC = () => {
   // Handle experience operations
   const handleExperienceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
       if (editingId) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('experience')
           .update(experienceForm)
           .eq('id', editingId);
+        
+        if (updateError) throw updateError;
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('experience')
           .insert([experienceForm]);
+        
+        if (insertError) throw insertError;
       }
 
       setExperienceForm({
@@ -176,7 +188,8 @@ const Admin: React.FC = () => {
       });
       setEditingId(null);
       fetchAllData();
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message);
       console.error('Error saving experience:', error);
     }
   };
@@ -184,48 +197,62 @@ const Admin: React.FC = () => {
   // Handle skill operations
   const handleSkillSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
       if (editingId) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('skills')
           .update(skillForm)
           .eq('id', editingId);
+        
+        if (updateError) throw updateError;
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('skills')
           .insert([skillForm]);
+        
+        if (insertError) throw insertError;
       }
 
       setSkillForm({ name: '', category: '', level: 1 });
       setEditingId(null);
       fetchAllData();
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message);
       console.error('Error saving skill:', error);
     }
   };
 
   // Handle delete operations
   const handleDelete = async (table: string, id: string) => {
+    setError(null);
     try {
-      await supabase
+      const { error: deleteError } = await supabase
         .from(table)
         .delete()
         .eq('id', id);
+      
+      if (deleteError) throw deleteError;
       fetchAllData();
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message);
       console.error(`Error deleting from ${table}:`, error);
     }
   };
 
   // Mark message as read
   const markAsRead = async (id: string) => {
+    setError(null);
     try {
-      await supabase
+      const { error: updateError } = await supabase
         .from('contact_messages')
         .update({ read: true })
         .eq('id', id);
+      
+      if (updateError) throw updateError;
       fetchAllData();
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message);
       console.error('Error marking message as read:', error);
     }
   };
@@ -317,6 +344,11 @@ const Admin: React.FC = () => {
 
   return (
     <div className="pt-20">
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold">
           <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Admin </span>
