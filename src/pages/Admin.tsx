@@ -4,7 +4,7 @@ import { Plus, Trash2, Edit, Save, X, Loader } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
 
-type ContentType = 'messages' | 'projects' | 'experience' | 'skills' | 'certificates';
+type ContentType = 'messages' | 'projects' | 'experience' | 'skills' | 'certificates' | 'cv';
 
 const Admin: React.FC = () => {
   const { theme } = useTheme();
@@ -22,6 +22,8 @@ const Admin: React.FC = () => {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [cvUrl, setCvUrl] = useState<string | null>(null);
+  const [cvUploading, setCvUploading] = useState(false);
   
   // Form states
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -279,6 +281,47 @@ const Admin: React.FC = () => {
     });
   };
 
+  // Fetch CV URL from Supabase Storage
+  const fetchCvUrl = async () => {
+    const { data } = await supabase.storage.from('cv').list();
+    if (data && data.length > 0) {
+      // Only one file allowed, get the first
+      const { data: urlData } = supabase.storage.from('cv').getPublicUrl(data[0].name);
+      setCvUrl(urlData.publicUrl);
+    } else {
+      setCvUrl(null);
+    }
+  };
+
+  // Call fetchCvUrl on mount and after upload
+  useEffect(() => {
+    if (isAuthenticated) fetchCvUrl();
+  }, [isAuthenticated]);
+
+  // Handle CV upload
+  const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      alert('Only PDF files are allowed.');
+      return;
+    }
+    setCvUploading(true);
+    // Remove old file(s)
+    const { data: oldFiles } = await supabase.storage.from('cv').list();
+    if (oldFiles && oldFiles.length > 0) {
+      await Promise.all(oldFiles.map(f => supabase.storage.from('cv').remove([f.name])));
+    }
+    // Upload new file
+    const { error } = await supabase.storage.from('cv').upload(file.name, file, { upsert: true, contentType: 'application/pdf' });
+    setCvUploading(false);
+    if (error) {
+      alert('Failed to upload CV.');
+      return;
+    }
+    fetchCvUrl();
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="pt-20">
@@ -432,6 +475,18 @@ const Admin: React.FC = () => {
           }`}
         >
           Certificates
+        </button>
+        <button
+          onClick={() => setActiveContent('cv')}
+          className={`px-4 py-2 rounded-md transition-colors duration-300 ${
+            activeContent === 'cv'
+              ? 'bg-blue-600 text-white'
+              : theme === 'dark'
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          CV
         </button>
       </div>
       
@@ -1211,6 +1266,28 @@ const Admin: React.FC = () => {
                   </motion.div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* CV Section */}
+          {activeContent === 'cv' && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-4">Upload/Manage CV (PDF only)</h2>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handleCvUpload}
+                disabled={cvUploading}
+                className="mb-4"
+              />
+              {cvUploading && <p className="text-blue-600">Uploading...</p>}
+              {cvUrl ? (
+                <div>
+                  <a href={cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Current CV</a>
+                </div>
+              ) : (
+                <p className="text-gray-500">No CV uploaded yet.</p>
+              )}
             </div>
           )}
         </div>
