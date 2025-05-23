@@ -1,11 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Linkedin, Github, Mail, Twitter } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Footer: React.FC = () => {
   const { theme } = useTheme();
   const year = new Date().getFullYear();
+  const navigate = useNavigate();
+
+  const handleQuickLinkClick = (path: string) => {
+    navigate(path);
+    window.scrollTo(0, 0);
+  };
 
   return (
     <footer className={`py-8 transition-colors duration-300 ${
@@ -81,52 +87,52 @@ const Footer: React.FC = () => {
             }`}>Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link 
-                  to="/"
-                  className={`transition-colors duration-300 ${
+                <button 
+                  onClick={() => handleQuickLinkClick('/')}
+                  className={`w-full text-left transition-colors duration-300 ${
                     theme === 'dark' 
                       ? 'text-gray-400 hover:text-white' 
                       : 'text-gray-600 hover:text-black'
                   }`}
                 >
                   Home
-                </Link>
+                </button>
               </li>
               <li>
-                <Link 
-                  to="/about"
-                  className={`transition-colors duration-300 ${
+                <button 
+                  onClick={() => handleQuickLinkClick('/about')}
+                  className={`w-full text-left transition-colors duration-300 ${
                     theme === 'dark' 
                       ? 'text-gray-400 hover:text-white' 
                       : 'text-gray-600 hover:text-black'
                   }`}
                 >
                   About
-                </Link>
+                </button>
               </li>
               <li>
-                <Link 
-                  to="/portfolio"
-                  className={`transition-colors duration-300 ${
+                <button 
+                  onClick={() => handleQuickLinkClick('/portfolio')}
+                  className={`w-full text-left transition-colors duration-300 ${
                     theme === 'dark' 
                       ? 'text-gray-400 hover:text-white' 
                       : 'text-gray-600 hover:text-black'
                   }`}
                 >
                   Portfolio
-                </Link>
+                </button>
               </li>
               <li>
-                <Link 
-                  to="/contact"
-                  className={`transition-colors duration-300 ${
+                <button 
+                  onClick={() => handleQuickLinkClick('/contact')}
+                  className={`w-full text-left transition-colors duration-300 ${
                     theme === 'dark' 
                       ? 'text-gray-400 hover:text-white' 
                       : 'text-gray-600 hover:text-black'
                   }`}
                 >
                   Contact
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
@@ -140,12 +146,12 @@ const Footer: React.FC = () => {
             }`}>
               Interested in collaboration or have questions?
             </p>
-            <Link 
-              to="/contact"
+            <button 
+              onClick={() => handleQuickLinkClick('/contact')}
               className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
             >
               Contact Me
-            </Link>
+            </button>
           </div>
         </div>
         
