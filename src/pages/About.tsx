@@ -128,23 +128,6 @@ const About: React.FC = () => {
                   theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
                 }`}>
                   <div className="flex items-center mb-4">
-                    <Award size={24} className="text-blue-600 mr-3" />
-                    <h3 className="text-xl font-semibold">Certifications</h3>
-                  </div>
-                  <ul className={`list-disc list-inside space-y-2 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    <li>Full Stack Web Development</li>
-                    <li>Linux (Advanced Commands)</li>
-                    <li>Introduction to Databases</li>
-                    <li>Social Media Marketing (HP LIFE)</li>
-                    <li>Python Programming</li>
-                  </ul>
-                </div>
-                <div className={`p-6 rounded-lg ${
-                  theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
-                }`}>
-                  <div className="flex items-center mb-4">
                     <BookOpen size={24} className="text-blue-600 mr-3" />
                     <h3 className="text-xl font-semibold">Education</h3>
                   </div>

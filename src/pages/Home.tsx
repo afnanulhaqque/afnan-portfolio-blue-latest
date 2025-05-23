@@ -1,11 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Download, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useSupabase } from '../context/SupabaseContext';
 
 const Home: React.FC = () => {
   const { theme } = useTheme();
+  const { supabase } = useSupabase();
+  const [cvLink, setCvLink] = useState<string>('');
+
+  useEffect(() => {
+    const fetchCvLink = async () => {
+      const { data, error } = await supabase
+        .from('cv')
+        .select('link')
+        .limit(1)
+        .single();
+      if (!error && data) {
+        setCvLink(data.link);
+      }
+    };
+    fetchCvLink();
+  }, [supabase]);
 
   const scrollToAbout = () => {
     const aboutSection = document.getElementById('about-section');
@@ -16,22 +33,23 @@ const Home: React.FC = () => {
 
   const handleResumeDownload = async () => {
     try {
+      if (!cvLink) {
+        alert('CV link not available. Please try again later.');
+        return;
+      }
+
       // Create a link element
       const link = document.createElement('a');
       
-      // Add timestamp to prevent caching
-      const timestamp = new Date().getTime();
-      
-      // Set the href to the resume file with cache-busting parameter
-      link.href = `/CV.pdf?t=${timestamp}`;
+      // Set the href to the CV link from database
+      link.href = cvLink;
       
       // Set the download attribute to force download
       link.download = 'CV.pdf';
       
-      // Set cache control headers
-      link.setAttribute('Cache-Control', 'no-cache, no-store, must-revalidate');
-      link.setAttribute('Pragma', 'no-cache');
-      link.setAttribute('Expires', '0');
+      // Open in new tab
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
       
       // Append to body
       document.body.appendChild(link);
@@ -87,17 +105,19 @@ const Home: React.FC = () => {
               <ArrowRight size={18} className="ml-2" />
             </Link>
             
-            <button
-              onClick={handleResumeDownload}
+            <a
+              href={cvLink || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`flex items-center justify-center px-6 py-3 rounded-md transition-colors duration-300 ${
                 theme === 'dark'
                   ? 'bg-gray-800 text-white hover:bg-gray-700'
                   : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-              }`}
+              } ${!cvLink ? 'pointer-events-none opacity-50' : ''}`}
             >
-              Download CV
+              View CV
               <Download size={18} className="ml-2" />
-            </button>
+            </a>
           </motion.div>
         </motion.div>
         

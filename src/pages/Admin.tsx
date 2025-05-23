@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Edit, Save, X, Loader } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Loader, Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
 
@@ -22,8 +22,8 @@ const Admin: React.FC = () => {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [cvUrl, setCvUrl] = useState<string | null>(null);
-  const [cvUploading, setCvUploading] = useState(false);
+  const [cvLink, setCvLink] = useState('');
+  const [cvLinkLoading, setCvLinkLoading] = useState(false);
   
   // Form states
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -281,45 +281,62 @@ const Admin: React.FC = () => {
     });
   };
 
-  // Fetch CV URL from Supabase Storage
-  const fetchCvUrl = async () => {
-    const { data } = await supabase.storage.from('cv').list();
-    if (data && data.length > 0) {
-      // Only one file allowed, get the first
-      const { data: urlData } = supabase.storage.from('cv').getPublicUrl(data[0].name);
-      setCvUrl(urlData.publicUrl);
-    } else {
-      setCvUrl(null);
+  // Fetch CV link from Supabase settings table
+  type Setting = { key: string; value: string };
+  const fetchCvLink = async () => {
+    setCvLinkLoading(true);
+    const { data, error } = await supabase
+      .from('cv')
+      .select('link')
+      .limit(1)
+      .single();
+    if (!error && data) {
+      setCvLink(data.link);
+    }
+    setCvLinkLoading(false);
+    if (error) {
+      console.error(error);
+      alert('Failed to fetch CV link.');
     }
   };
 
-  // Call fetchCvUrl on mount and after upload
   useEffect(() => {
-    if (isAuthenticated) fetchCvUrl();
-  }, [isAuthenticated]);
+    fetchCvLink();
+  }, [supabase]);
 
-  // Handle CV upload
-  const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
-      alert('Only PDF files are allowed.');
-      return;
+  // Save CV link to Supabase cv table
+  const handleCvLinkSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCvLinkLoading(true);
+
+    // Check if a row already exists
+    const { data: existing, error: fetchError } = await supabase
+      .from('cv')
+      .select('id')
+      .limit(1)
+      .single();
+
+    let error;
+    if (existing) {
+      // Update existing row
+      ({ error } = await supabase
+        .from('cv')
+        .update({ link: cvLink })
+        .eq('id', existing.id));
+    } else {
+      // Insert new row
+      ({ error } = await supabase
+        .from('cv')
+        .insert([{ link: cvLink }]));
     }
-    setCvUploading(true);
-    // Remove old file(s)
-    const { data: oldFiles } = await supabase.storage.from('cv').list();
-    if (oldFiles && oldFiles.length > 0) {
-      await Promise.all(oldFiles.map(f => supabase.storage.from('cv').remove([f.name])));
-    }
-    // Upload new file
-    const { error } = await supabase.storage.from('cv').upload(file.name, file, { upsert: true, contentType: 'application/pdf' });
-    setCvUploading(false);
+
     if (error) {
-      alert('Failed to upload CV.');
-      return;
+      console.error(error);
+      alert('Failed to save CV link.');
+    } else {
+      alert('CV link saved!');
     }
-    fetchCvUrl();
+    setCvLinkLoading(false);
   };
 
   if (!isAuthenticated) {
@@ -1272,21 +1289,52 @@ const Admin: React.FC = () => {
           {/* CV Section */}
           {activeContent === 'cv' && (
             <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Upload/Manage CV (PDF only)</h2>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handleCvUpload}
-                disabled={cvUploading}
-                className="mb-4"
-              />
-              {cvUploading && <p className="text-blue-600">Uploading...</p>}
-              {cvUrl ? (
+              <h2 className="text-2xl font-bold mb-4">Manage CV Link</h2>
+              <form onSubmit={handleCvLinkSave} className="space-y-4">
                 <div>
-                  <a href={cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Current CV</a>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    CV Link (Google Drive, Dropbox, etc.)
+                  </label>
+                  <input
+                    type="url"
+                    value={cvLink}
+                    onChange={e => setCvLink(e.target.value)}
+                    placeholder="https://drive.google.com/file/..."
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
+                    required
+                  />
+                  <p className={`mt-2 text-sm ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Make sure the link is publicly accessible and allows downloads.
+                  </p>
                 </div>
-              ) : (
-                <p className="text-gray-500">No CV uploaded yet.</p>
+                <button
+                  type="submit"
+                  className="py-3 px-6 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
+                  disabled={cvLinkLoading}
+                >
+                  {cvLinkLoading ? 'Saving...' : 'Save Link'}
+                </button>
+              </form>
+              {cvLink && (
+                <div className="mt-4">
+                  <a 
+                    href={cvLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className={`inline-flex items-center text-blue-600 hover:text-blue-700 ${
+                      theme === 'dark' ? 'hover:text-blue-400' : ''
+                    }`}
+                  >
+                    <Download size={16} className="mr-2" />
+                    Test Current CV Link
+                  </a>
+                </div>
               )}
             </div>
           )}
