@@ -115,7 +115,7 @@ const Home: React.FC = () => {
                   : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
               } ${!cvLink ? 'pointer-events-none opacity-50' : ''}`}
             >
-              View CV
+            Download CV
               <Download size={18} className="ml-2" />
             </a>
           </motion.div>
