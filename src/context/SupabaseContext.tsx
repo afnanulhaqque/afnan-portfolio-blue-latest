@@ -118,7 +118,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       getProjects, 
       getExperience, 
       getSkills, 
-      submitContactForm 
+      submitContactForm
     }}>
       {children}
     </SupabaseContext.Provider>

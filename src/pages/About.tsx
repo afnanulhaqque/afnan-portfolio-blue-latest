@@ -141,7 +141,6 @@ const About: React.FC = () => {
                     <li>Python Programming</li>
                   </ul>
                 </div>
-                
                 <div className={`p-6 rounded-lg ${
                   theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
                 }`}>

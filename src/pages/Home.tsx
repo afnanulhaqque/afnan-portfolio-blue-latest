@@ -23,10 +23,10 @@ const Home: React.FC = () => {
       const timestamp = new Date().getTime();
       
       // Set the href to the resume file with cache-busting parameter
-      link.href = `/resume.pdf?t=${timestamp}`;
+      link.href = `/CV.pdf?t=${timestamp}`;
       
       // Set the download attribute to force download
-      link.download = 'Resume.pdf';
+      link.download = 'CV.pdf';
       
       // Set cache control headers
       link.setAttribute('Cache-Control', 'no-cache, no-store, must-revalidate');
