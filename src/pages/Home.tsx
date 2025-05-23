@@ -14,6 +14,39 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleResumeDownload = async () => {
+    try {
+      // Create a link element
+      const link = document.createElement('a');
+      
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      
+      // Set the href to the resume file with cache-busting parameter
+      link.href = `/resume.pdf?t=${timestamp}`;
+      
+      // Set the download attribute to force download
+      link.download = 'Resume.pdf';
+      
+      // Set cache control headers
+      link.setAttribute('Cache-Control', 'no-cache, no-store, must-revalidate');
+      link.setAttribute('Pragma', 'no-cache');
+      link.setAttribute('Expires', '0');
+      
+      // Append to body
+      document.body.appendChild(link);
+      
+      // Trigger click
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      alert('Failed to download resume. Please try again.');
+    }
+  };
+
   return (
     <>
       {/* Hero Section */}
@@ -54,9 +87,8 @@ const Home: React.FC = () => {
               <ArrowRight size={18} className="ml-2" />
             </Link>
             
-            <a
-              href="/resume.pdf"
-              download
+            <button
+              onClick={handleResumeDownload}
               className={`flex items-center justify-center px-6 py-3 rounded-md transition-colors duration-300 ${
                 theme === 'dark'
                   ? 'bg-gray-800 text-white hover:bg-gray-700'
@@ -65,7 +97,7 @@ const Home: React.FC = () => {
             >
               Download CV
               <Download size={18} className="ml-2" />
-            </a>
+            </button>
           </motion.div>
         </motion.div>
         
@@ -88,40 +120,20 @@ const Home: React.FC = () => {
       </section>
       
       {/* About Section Preview */}
-      <section id="about-section" className="py-20">
+      <section id="about-section" className="py-16">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
+              initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="md:w-1/2"
             >
-              <img
-                src="https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
-                alt="Afnan Ul Haq"
-                className="rounded-lg shadow-lg w-full h-auto max-w-md mx-auto object-cover"
-              />
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="md:w-1/2"
-            >
-              <h2 className="text-3xl font-bold mb-6">
-                <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>About </span>
-                <span className="text-blue-600">Me</span>
-              </h2>
-              
-              <p className={`mb-6 leading-relaxed ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              <h2 className={`text-3xl font-bold mb-4 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
-                I'm a passionate and driven undergraduate student pursuing a Bachelor of Science in Information Technology at the International Islamic University Islamabad (IIUI). With a strong inclination toward technology, media, and community engagement, I've built a diverse portfolio of experience across various domains.
-              </p>
+                About Me
+              </h2>
               
               <p className={`mb-8 leading-relaxed ${
                 theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
