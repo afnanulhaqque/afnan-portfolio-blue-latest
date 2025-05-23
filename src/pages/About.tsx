@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Award, BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SkillBar from '../components/SkillBar';
 import { useSupabase, Skill } from '../context/SupabaseContext';
