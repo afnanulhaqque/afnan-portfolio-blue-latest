@@ -281,68 +281,97 @@ const Admin: React.FC = () => {
     });
   };
 
-  // Fetch CV link from Supabase settings table
-  type Setting = { key: string; value: string };
+  // Save CV link to Supabase cv table
+  const handleCvLinkSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCvLinkLoading(true);
+
+    try {
+      // Ensure Dropbox link has dl=1
+      const dropboxLink = cvLink.includes('?dl=1') 
+        ? cvLink 
+        : cvLink.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1';
+
+      console.log('Attempting to save CV link:', dropboxLink);
+
+      // First check if any row exists
+      const { data: existing, error: checkError } = await supabase
+        .from('cv')
+        .select('id')
+        .maybeSingle();
+
+      console.log('Existing CV record check:', { existing, checkError });
+
+      let error;
+      if (existing) {
+        // Update existing row
+        const { error: updateError } = await supabase
+          .from('cv')
+          .update({ link: dropboxLink })
+          .eq('id', existing.id);
+        error = updateError;
+        console.log('Updated existing CV record:', { error: updateError });
+      } else {
+        // Insert new row
+        const { error: insertError } = await supabase
+          .from('cv')
+          .insert([{ link: dropboxLink }]);
+        error = insertError;
+        console.log('Inserted new CV record:', { error: insertError });
+      }
+
+      if (error) {
+        console.error('Error saving CV link:', error);
+        alert('Failed to save CV link. Please try again.');
+      } else {
+        alert('CV link saved successfully!');
+        // Verify the save by fetching the link
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('cv')
+          .select('link')
+          .single();
+        
+        console.log('Verification after save:', { verifyData, verifyError });
+        
+        if (verifyData?.link) {
+          setCvLink(verifyData.link);
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error saving CV link:', err);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setCvLinkLoading(false);
+    }
+  };
+
+  // Fetch CV link from Supabase cv table
   const fetchCvLink = async () => {
     setCvLinkLoading(true);
-    const { data, error } = await supabase
-      .from('cv')
-      .select('link')
-      .limit(1)
-      .single();
-    if (!error && data) {
-      setCvLink(data.link);
-    }
-    setCvLinkLoading(false);
-    if (error) {
-      console.error(error);
-      alert('Failed to fetch CV link.');
+    try {
+      console.log('Fetching CV link...');
+      const { data, error } = await supabase
+        .from('cv')
+        .select('link')
+        .maybeSingle();
+      
+      console.log('CV link fetch result:', { data, error });
+      
+      if (!error && data?.link) {
+        setCvLink(data.link);
+      } else {
+        console.log('No CV link found or error occurred:', error);
+      }
+    } catch (err) {
+      console.error('Error fetching CV link:', err);
+    } finally {
+      setCvLinkLoading(false);
     }
   };
 
   useEffect(() => {
     fetchCvLink();
   }, [supabase]);
-
-  // Save CV link to Supabase cv table
-  const handleCvLinkSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCvLinkLoading(true);
-
-    // Ensure Dropbox link has dl=1
-    const dropboxLink = cvLink.includes('?dl=1') 
-      ? cvLink 
-      : cvLink.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1';
-
-    // Check if a row already exists
-    const { data: existing, error: fetchError } = await supabase
-      .from('cv')
-      .select('id')
-      .limit(1)
-      .single();
-
-    let error;
-    if (existing) {
-      // Update existing row
-      ({ error } = await supabase
-        .from('cv')
-        .update({ link: dropboxLink })
-        .eq('id', existing.id));
-    } else {
-      // Insert new row
-      ({ error } = await supabase
-        .from('cv')
-        .insert([{ link: dropboxLink }]));
-    }
-
-    if (error) {
-      console.error(error);
-      alert('Failed to save CV link.');
-    } else {
-      alert('CV link saved!');
-    }
-    setCvLinkLoading(false);
-  };
 
   if (!isAuthenticated) {
     return (

@@ -17,15 +17,28 @@ const Home: React.FC = () => {
       try {
         console.log('Starting CV link fetch...');
         
-        // Try to get the actual link
+        // First check if we can access the cv table
+        const { data: testData, error: testError } = await supabase
+          .from('cv')
+          .select('*');
+          
+        console.log('CV table access test:', { testData, testError });
+        
+        if (testError) {
+          console.error('Error accessing cv table:', testError);
+          return;
+        }
+        
+        console.log('Successfully accessed cv table, found rows:', testData?.length);
+        
+        // Now fetch the actual link
         const { data, error } = await supabase
           .from('cv')
-          .select('link')
-          .order('created_at', { ascending: false })
+          .select('*')
           .limit(1)
           .maybeSingle();
         
-        console.log('CV link fetch response:', { data, error });
+        console.log('Raw CV link fetch result (selecting all):', { data, error });
         
         if (error) {
           console.error('Error fetching CV link:', {
@@ -37,7 +50,12 @@ const Home: React.FC = () => {
           return;
         }
         
-        if (data?.link) {
+        if (!data) {
+          console.log('No CV link found in database');
+          return;
+        }
+        
+        if (data.link) {
           // Ensure Dropbox link has dl=1
           const dropboxLink = data.link.includes('dropbox.com') 
             ? data.link.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1'
@@ -45,8 +63,6 @@ const Home: React.FC = () => {
             
           console.log('Successfully found CV link:', dropboxLink);
           setCvLink(dropboxLink);
-        } else {
-          console.log('No CV link found in database');
         }
       } catch (error) {
         console.error('Unexpected error in fetchCvLink:', error);
@@ -67,39 +83,54 @@ const Home: React.FC = () => {
 
   const handleResumeDownload = async () => {
     try {
-      if (!cvLink) {
-        // Try to fetch the link one more time
-        const { data, error } = await supabase
-          .from('cv')
-          .select('link')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (error) {
-          console.error('Download fetch error:', error);
-          alert('Error fetching CV link. Please try again.');
-          return;
-        }
-        
-        if (!data?.link) {
-          alert('CV link not available. Please try again later.');
-          return;
-        }
-        
-        // Ensure Dropbox link has dl=1
-        const dropboxLink = data.link.includes('dropbox.com') 
-          ? data.link.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1'
-          : data.link;
-          
-        setCvLink(dropboxLink);
-        window.open(dropboxLink, '_blank');
-      } else {
-        window.open(cvLink, '_blank');
+      setIsLoading(true);
+      console.log('Starting CV download process...');
+      
+      // Always fetch fresh link from database
+      const { data, error } = await supabase
+        .from('cv')
+        .select('link')
+        .limit(1)
+        .maybeSingle();
+      
+      console.log('CV link fetch response:', { data, error });
+      
+      if (error) {
+        console.error('Download fetch error:', error);
+        alert('Error fetching CV link. Please try again.');
+        return;
       }
+      
+      if (!data?.link) {
+        console.log('No CV link found in database');
+        alert('CV link not available. Please contact the administrator.');
+        return;
+      }
+      
+      // Ensure Dropbox link has dl=1
+      const dropboxLink = data.link.includes('dropbox.com') 
+        ? data.link.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1'
+        : data.link;
+        
+      console.log('Opening CV link:', dropboxLink);
+      
+      // Create a temporary anchor element
+      const link = document.createElement('a');
+      link.href = dropboxLink;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = 'Afnan_Ul_Haq_CV.pdf'; // Set default filename
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Update state with the new link
+      setCvLink(dropboxLink);
     } catch (error) {
       console.error('Download error:', error);
       alert('Failed to download resume. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -129,43 +129,37 @@ CREATE POLICY "Allow authenticated users to manage contact messages"
   USING (true)
   WITH CHECK (true);
 
--- CV table
-CREATE TABLE IF NOT EXISTS cv (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  link text NOT NULL,
-  created_at timestamptz DEFAULT now()
+-- Create the cv table if it doesn't exist
+CREATE TABLE public.cv (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    link text NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT cv_pkey PRIMARY KEY (id)
 );
 
-ALTER TABLE cv ENABLE ROW LEVEL SECURITY;
+-- Enable Row Level Security on the cv table
+ALTER TABLE public.cv ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if any
-DROP POLICY IF EXISTS "Enable read access for all users" ON cv;
-DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON cv;
-DROP POLICY IF EXISTS "Enable update for authenticated users only" ON cv;
-DROP POLICY IF EXISTS "Enable delete for authenticated users only" ON cv;
+-- Drop existing policies for cv if they exist
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.cv;
+DROP POLICY IF EXISTS "Allow authorized users to insert" ON public.cv;
+DROP POLICY IF EXISTS "Allow authorized users to update" ON public.cv;
+DROP POLICY IF EXISTS "Allow authorized users to delete" ON public.cv;
 
--- Create new policies
-CREATE POLICY "Enable read access for all users"
-  ON cv
-  FOR SELECT
-  TO public
-  USING (true);
+-- Create a new policy to allow public read access
+CREATE POLICY "Enable read access for all users" ON public.cv AS permissive FOR
+    SELECT TO public
+    USING (true);
 
-CREATE POLICY "Enable insert for authenticated users only"
-  ON cv
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
+-- Optionally, add policies for authenticated users to manage their own data if needed, adjust as per your application's auth logic
+-- CREATE POLICY "Allow authorized users to insert" ON public.cv AS permissive FOR
+--     INSERT TO authenticated
+--     WITH CHECK (true);
 
-CREATE POLICY "Enable update for authenticated users only"
-  ON cv
-  FOR UPDATE
-  TO authenticated
-  USING (true)
-  WITH CHECK (true);
+-- CREATE POLICY "Allow authorized users to update" ON public.cv AS permissive FOR
+--     UPDATE TO authenticated
+--     USING (true);
 
-CREATE POLICY "Enable delete for authenticated users only"
-  ON cv
-  FOR DELETE
-  TO authenticated
-  USING (true);
+-- CREATE POLICY "Allow authorized users to delete" ON public.cv AS permissive FOR
+--     DELETE TO authenticated
+--     USING (true);
