@@ -90,17 +90,17 @@ CREATE POLICY "Anyone can read projects" ON projects
 
 CREATE POLICY "Only admins can insert projects" ON projects 
   FOR INSERT TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 CREATE POLICY "Only admins can update projects" ON projects 
   FOR UPDATE TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 CREATE POLICY "Only admins can delete projects" ON projects 
   FOR DELETE TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 -- Experience policies
@@ -109,17 +109,17 @@ CREATE POLICY "Anyone can read experience" ON experience
 
 CREATE POLICY "Only admins can insert experience" ON experience 
   FOR INSERT TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 CREATE POLICY "Only admins can update experience" ON experience 
   FOR UPDATE TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 CREATE POLICY "Only admins can delete experience" ON experience 
   FOR DELETE TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 -- Skills policies
@@ -128,17 +128,17 @@ CREATE POLICY "Anyone can read skills" ON skills
 
 CREATE POLICY "Only admins can insert skills" ON skills 
   FOR INSERT TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 CREATE POLICY "Only admins can update skills" ON skills 
   FOR UPDATE TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 CREATE POLICY "Only admins can delete skills" ON skills 
   FOR DELETE TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 -- Contact messages policies
@@ -147,10 +147,10 @@ CREATE POLICY "Anyone can insert contact messages" ON contact_messages
 
 CREATE POLICY "Only admins can read contact messages" ON contact_messages 
   FOR SELECT TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
 
 CREATE POLICY "Only admins can update contact messages" ON contact_messages 
   FOR UPDATE TO authenticated USING (auth.uid() IN (
-    SELECT auth.uid() FROM auth.users WHERE auth.email() = 'admin@example.com'
+    SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
