@@ -309,6 +309,11 @@ const Admin: React.FC = () => {
     e.preventDefault();
     setCvLinkLoading(true);
 
+    // Ensure Dropbox link has dl=1
+    const dropboxLink = cvLink.includes('?dl=1') 
+      ? cvLink 
+      : cvLink.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1';
+
     // Check if a row already exists
     const { data: existing, error: fetchError } = await supabase
       .from('cv')
@@ -321,13 +326,13 @@ const Admin: React.FC = () => {
       // Update existing row
       ({ error } = await supabase
         .from('cv')
-        .update({ link: cvLink })
+        .update({ link: dropboxLink })
         .eq('id', existing.id));
     } else {
       // Insert new row
       ({ error } = await supabase
         .from('cv')
-        .insert([{ link: cvLink }]));
+        .insert([{ link: dropboxLink }]));
     }
 
     if (error) {

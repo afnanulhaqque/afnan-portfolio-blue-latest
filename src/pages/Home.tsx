@@ -9,18 +9,52 @@ const Home: React.FC = () => {
   const { theme } = useTheme();
   const { supabase } = useSupabase();
   const [cvLink, setCvLink] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchCvLink = async () => {
-      const { data, error } = await supabase
-        .from('cv')
-        .select('link')
-        .limit(1)
-        .single();
-      if (!error && data) {
-        setCvLink(data.link);
+      setIsLoading(true);
+      try {
+        console.log('Starting CV link fetch...');
+        
+        // Try to get the actual link
+        const { data, error } = await supabase
+          .from('cv')
+          .select('link')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        console.log('CV link fetch response:', { data, error });
+        
+        if (error) {
+          console.error('Error fetching CV link:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          return;
+        }
+        
+        if (data?.link) {
+          // Ensure Dropbox link has dl=1
+          const dropboxLink = data.link.includes('dropbox.com') 
+            ? data.link.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1'
+            : data.link;
+            
+          console.log('Successfully found CV link:', dropboxLink);
+          setCvLink(dropboxLink);
+        } else {
+          console.log('No CV link found in database');
+        }
+      } catch (error) {
+        console.error('Unexpected error in fetchCvLink:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
+    
     fetchCvLink();
   }, [supabase]);
 
@@ -34,33 +68,37 @@ const Home: React.FC = () => {
   const handleResumeDownload = async () => {
     try {
       if (!cvLink) {
-        alert('CV link not available. Please try again later.');
-        return;
+        // Try to fetch the link one more time
+        const { data, error } = await supabase
+          .from('cv')
+          .select('link')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Download fetch error:', error);
+          alert('Error fetching CV link. Please try again.');
+          return;
+        }
+        
+        if (!data?.link) {
+          alert('CV link not available. Please try again later.');
+          return;
+        }
+        
+        // Ensure Dropbox link has dl=1
+        const dropboxLink = data.link.includes('dropbox.com') 
+          ? data.link.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1'
+          : data.link;
+          
+        setCvLink(dropboxLink);
+        window.open(dropboxLink, '_blank');
+      } else {
+        window.open(cvLink, '_blank');
       }
-
-      // Create a link element
-      const link = document.createElement('a');
-      
-      // Set the href to the CV link from database
-      link.href = cvLink;
-      
-      // Set the download attribute to force download
-      link.download = 'CV.pdf';
-      
-      // Open in new tab
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      
-      // Append to body
-      document.body.appendChild(link);
-      
-      // Trigger click
-      link.click();
-      
-      // Clean up
-      document.body.removeChild(link);
     } catch (error) {
-      console.error('Error downloading resume:', error);
+      console.error('Download error:', error);
       alert('Failed to download resume. Please try again.');
     }
   };
@@ -105,19 +143,18 @@ const Home: React.FC = () => {
               <ArrowRight size={18} className="ml-2" />
             </Link>
             
-            <a
-              href={cvLink || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex items-center justify-center px-6 py-3 rounded-md transition-colors duration-300 ${
+            <button
+              onClick={handleResumeDownload}
+              disabled={isLoading}
+              className={`flex items-center justify-center px-6 py-3 rounded-md transition-colors duration-300 cursor-pointer ${
                 theme === 'dark'
                   ? 'bg-gray-800 text-white hover:bg-gray-700'
                   : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-              } ${!cvLink ? 'pointer-events-none opacity-50' : ''}`}
+              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-            Download CV
+              {isLoading ? 'Loading...' : 'Download CV'}
               <Download size={18} className="ml-2" />
-            </a>
+            </button>
           </motion.div>
         </motion.div>
         

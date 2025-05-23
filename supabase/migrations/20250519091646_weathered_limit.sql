@@ -36,6 +36,11 @@
       - `read` (boolean)
       - `created_at` (timestamp)
 
+    - `cv`
+      - `id` (uuid, primary key)
+      - `link` (text)
+      - `created_at` (timestamp)
+
   2. Security
     - Enable RLS on all tables
     - Add policies for authenticated users to manage content
@@ -123,3 +128,44 @@ CREATE POLICY "Allow authenticated users to manage contact messages"
   TO authenticated
   USING (true)
   WITH CHECK (true);
+
+-- CV table
+CREATE TABLE IF NOT EXISTS cv (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  link text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE cv ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Enable read access for all users" ON cv;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON cv;
+DROP POLICY IF EXISTS "Enable update for authenticated users only" ON cv;
+DROP POLICY IF EXISTS "Enable delete for authenticated users only" ON cv;
+
+-- Create new policies
+CREATE POLICY "Enable read access for all users"
+  ON cv
+  FOR SELECT
+  TO public
+  USING (true);
+
+CREATE POLICY "Enable insert for authenticated users only"
+  ON cv
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Enable update for authenticated users only"
+  ON cv
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Enable delete for authenticated users only"
+  ON cv
+  FOR DELETE
+  TO authenticated
+  USING (true);
