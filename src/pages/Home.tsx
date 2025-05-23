@@ -8,7 +8,6 @@ import { useSupabase } from '../context/SupabaseContext';
 const Home: React.FC = () => {
   const { theme } = useTheme();
   const { supabase } = useSupabase();
-  const [cvLink, setCvLink] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -62,7 +61,6 @@ const Home: React.FC = () => {
             : data.link;
             
           console.log('Successfully found CV link:', dropboxLink);
-          setCvLink(dropboxLink);
         }
       } catch (error) {
         console.error('Unexpected error in fetchCvLink:', error);
@@ -123,9 +121,6 @@ const Home: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Update state with the new link
-      setCvLink(dropboxLink);
     } catch (error) {
       console.error('Download error:', error);
       alert('Failed to download resume. Please try again.');
