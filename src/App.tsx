@@ -10,6 +10,7 @@ import Experience from './pages/Experience';
 import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 import Admin from './pages/Admin';
+import Certificates from './pages/Certificates';
 import { SupabaseProvider } from './context/SupabaseContext';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
                 <Route path="/about" element={<About />} />
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/experience" element={<Experience />} />
+                <Route path="/certificates" element={<Certificates />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />

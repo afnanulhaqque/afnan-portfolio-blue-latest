@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, Edit, Save, X, Loader } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useSupabase, ContactMessage, Project, Experience, Skill } from '../context/SupabaseContext';
+import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
 
-type ContentType = 'messages' | 'projects' | 'experience' | 'skills';
+type ContentType = 'messages' | 'projects' | 'experience' | 'skills' | 'certificates';
 
 const Admin: React.FC = () => {
   const { theme } = useTheme();
@@ -15,13 +15,13 @@ const Admin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
   // Data states
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   
   // Form states
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,6 +44,13 @@ const Admin: React.FC = () => {
     name: '',
     category: '',
     level: 1
+  });
+  const [certificateForm, setCertificateForm] = useState({
+    title: '',
+    issuer: '',
+    date: '',
+    description: '',
+    image_url: ''
   });
 
   // Check authentication status
@@ -92,6 +99,13 @@ const Admin: React.FC = () => {
         .select('*')
         .order('category', { ascending: true });
       setSkills(skillsData || []);
+
+      // Fetch certificates
+      const { data: certificatesData } = await supabase
+        .from('certificates')
+        .select('*')
+        .order('date', { ascending: false });
+      setCertificates(certificatesData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -127,7 +141,6 @@ const Admin: React.FC = () => {
   // Handle project operations
   const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     try {
       const projectData = {
         ...projectForm,
@@ -135,25 +148,20 @@ const Admin: React.FC = () => {
       };
 
       if (editingId) {
-        const { error: updateError } = await supabase
+        await supabase
           .from('projects')
           .update(projectData)
           .eq('id', editingId);
-        
-        if (updateError) throw updateError;
       } else {
-        const { error: insertError } = await supabase
+        await supabase
           .from('projects')
           .insert([projectData]);
-        
-        if (insertError) throw insertError;
       }
 
       setProjectForm({ title: '', description: '', image_url: '', tags: '', link: '' });
       setEditingId(null);
       fetchAllData();
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
       console.error('Error saving project:', error);
     }
   };
@@ -161,21 +169,16 @@ const Admin: React.FC = () => {
   // Handle experience operations
   const handleExperienceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     try {
       if (editingId) {
-        const { error: updateError } = await supabase
+        await supabase
           .from('experience')
           .update(experienceForm)
           .eq('id', editingId);
-        
-        if (updateError) throw updateError;
       } else {
-        const { error: insertError } = await supabase
+        await supabase
           .from('experience')
           .insert([experienceForm]);
-        
-        if (insertError) throw insertError;
       }
 
       setExperienceForm({
@@ -188,8 +191,7 @@ const Admin: React.FC = () => {
       });
       setEditingId(null);
       fetchAllData();
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
       console.error('Error saving experience:', error);
     }
   };
@@ -197,62 +199,70 @@ const Admin: React.FC = () => {
   // Handle skill operations
   const handleSkillSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     try {
       if (editingId) {
-        const { error: updateError } = await supabase
+        await supabase
           .from('skills')
           .update(skillForm)
           .eq('id', editingId);
-        
-        if (updateError) throw updateError;
       } else {
-        const { error: insertError } = await supabase
+        await supabase
           .from('skills')
           .insert([skillForm]);
-        
-        if (insertError) throw insertError;
       }
 
       setSkillForm({ name: '', category: '', level: 1 });
       setEditingId(null);
       fetchAllData();
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
       console.error('Error saving skill:', error);
+    }
+  };
+
+  // Handle certificate operations
+  const handleCertificateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        await supabase
+          .from('certificates')
+          .update(certificateForm)
+          .eq('id', editingId);
+      } else {
+        await supabase
+          .from('certificates')
+          .insert([certificateForm]);
+      }
+      setCertificateForm({ title: '', issuer: '', date: '', description: '', image_url: '' });
+      setEditingId(null);
+      fetchAllData();
+    } catch (error) {
+      console.error('Error saving certificate:', error);
     }
   };
 
   // Handle delete operations
   const handleDelete = async (table: string, id: string) => {
-    setError(null);
     try {
-      const { error: deleteError } = await supabase
+      await supabase
         .from(table)
         .delete()
         .eq('id', id);
-      
-      if (deleteError) throw deleteError;
       fetchAllData();
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
       console.error(`Error deleting from ${table}:`, error);
     }
   };
 
   // Mark message as read
   const markAsRead = async (id: string) => {
-    setError(null);
     try {
-      const { error: updateError } = await supabase
+      await supabase
         .from('contact_messages')
         .update({ read: true })
         .eq('id', id);
-      
-      if (updateError) throw updateError;
       fetchAllData();
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
       console.error('Error marking message as read:', error);
     }
   };
@@ -344,11 +354,6 @@ const Admin: React.FC = () => {
 
   return (
     <div className="pt-20">
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold">
           <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Admin </span>
@@ -416,6 +421,18 @@ const Admin: React.FC = () => {
         >
           Skills
         </button>
+        <button
+          onClick={() => setActiveContent('certificates')}
+          className={`px-4 py-2 rounded-md transition-colors duration-300 ${
+            activeContent === 'certificates'
+              ? 'bg-blue-600 text-white'
+              : theme === 'dark'
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Certificates
+        </button>
       </div>
       
       {loading ? (
@@ -475,14 +492,14 @@ const Admin: React.FC = () => {
                     <div className="flex justify-between items-center">
                       {!message.read && (
                         <button
-                          onClick={() => markAsRead(message.id.toString())}
+                          onClick={() => markAsRead(message.id)}
                           className="text-sm text-blue-600 hover:text-blue-700"
                         >
                           Mark as read
                         </button>
                       )}
                       <button
-                        onClick={() => handleDelete('contact_messages', message.id.toString())}
+                        onClick={() => handleDelete('contact_messages', message.id)}
                         className="text-sm text-red-600 hover:text-red-700"
                       >
                         Delete
@@ -652,14 +669,14 @@ const Admin: React.FC = () => {
                               tags: project.tags.join(', '),
                               link: project.link
                             });
-                            setEditingId(project.id.toString());
+                            setEditingId(project.id);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                         >
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete('projects', project.id.toString())}
+                          onClick={() => handleDelete('projects', project.id)}
                           className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
                         >
                           <Trash2 size={16} />
@@ -864,14 +881,14 @@ const Admin: React.FC = () => {
                               description: experience.description,
                               type: experience.type
                             });
-                            setEditingId(experience.id.toString());
+                            setEditingId(experience.id);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                         >
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete('experience', experience.id.toString())}
+                          onClick={() => handleDelete('experience', experience.id)}
                           className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
                         >
                           <Trash2 size={16} />
@@ -1003,14 +1020,188 @@ const Admin: React.FC = () => {
                               category: skill.category,
                               level: skill.level
                             });
-                            setEditingId(skill.id.toString());
+                            setEditingId(skill.id);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                         >
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete('skills', skill.id.toString())}
+                          onClick={() => handleDelete('skills', skill.id)}
+                          className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Certificates Section */}
+          {activeContent === 'certificates' && (
+            <div>
+              <form onSubmit={handleCertificateSubmit} className="mb-8 space-y-4">
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={certificateForm.title}
+                    onChange={(e) => setCertificateForm({ ...certificateForm, title: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Issuer
+                  </label>
+                  <input
+                    type="text"
+                    value={certificateForm.issuer}
+                    onChange={(e) => setCertificateForm({ ...certificateForm, issuer: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={certificateForm.date}
+                    onChange={(e) => setCertificateForm({ ...certificateForm, date: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Description
+                  </label>
+                  <textarea
+                    value={certificateForm.description}
+                    onChange={(e) => setCertificateForm({ ...certificateForm, description: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Image URL
+                  </label>
+                  <input
+                    type="text"
+                    value={certificateForm.image_url}
+                    onChange={(e) => setCertificateForm({ ...certificateForm, image_url: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
+                >
+                  {editingId ? 'Update Certificate' : 'Add Certificate'}
+                </button>
+              </form>
+              <div className="space-y-4">
+                {certificates.map((certificate) => (
+                  <motion.div
+                    key={certificate.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-6 rounded-lg shadow-md ${
+                      theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-bold">{certificate.title}</h3>
+                        <p className={`text-sm ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          {certificate.issuer}
+                        </p>
+                        <p className={`text-sm ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          {new Date(certificate.date).toLocaleDateString()}
+                        </p>
+                        <p className={`mt-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          {certificate.description}
+                        </p>
+                        <img
+                          src={certificate.image_url}
+                          alt={certificate.title}
+                          className="mt-2 w-32 h-20 object-cover rounded"
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setCertificateForm({
+                              title: certificate.title,
+                              issuer: certificate.issuer,
+                              date: certificate.date,
+                              description: certificate.description,
+                              image_url: certificate.image_url
+                            });
+                            setEditingId(certificate.id);
+                          }}
+                          className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete('certificates', certificate.id)}
                           className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
                         >
                           <Trash2 size={16} />

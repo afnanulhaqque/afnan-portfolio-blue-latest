@@ -1,9 +1,8 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Types for our database
 export type Project = {
-  id: number;
+  id: string;
   title: string;
   description: string;
   image_url: string;
@@ -13,7 +12,7 @@ export type Project = {
 };
 
 export type Experience = {
-  id: number;
+  id: string;
   position: string;
   organization: string;
   start_date: string;
@@ -23,7 +22,7 @@ export type Experience = {
 };
 
 export type ContactMessage = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   message: string;
@@ -32,30 +31,67 @@ export type ContactMessage = {
 };
 
 export type Skill = {
-  id: number;
+  id: string;
   name: string;
   category: string;
   level: number;
 };
 
+export type Certificate = {
+  id: string;
+  title: string;
+  issuer: string;
+  date: string;
+  description: string;
+  image_url: string;
+  created_at: string;
+};
+
 interface SupabaseContextType {
   supabase: SupabaseClient;
+  isAdmin: boolean;
   getProjects: () => Promise<Project[]>;
   getExperience: () => Promise<Experience[]>;
   getSkills: () => Promise<Skill[]>;
+  getCertificates: () => Promise<Certificate[]>;
   submitContactForm: (name: string, email: string, message: string) => Promise<void>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
 
-// Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Get all projects
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('is_approved')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setIsAdmin(!!userData?.is_approved);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  };
+
   const getProjects = async (): Promise<Project[]> => {
     const { data, error } = await supabase
       .from('projects')
@@ -70,7 +106,6 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return data || [];
   };
 
-  // Get all experience items (work and education)
   const getExperience = async (): Promise<Experience[]> => {
     const { data, error } = await supabase
       .from('experience')
@@ -85,7 +120,6 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return data || [];
   };
 
-  // Get all skills
   const getSkills = async (): Promise<Skill[]> => {
     const { data, error } = await supabase
       .from('skills')
@@ -100,7 +134,20 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return data || [];
   };
 
-  // Submit contact form
+  const getCertificates = async (): Promise<Certificate[]> => {
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching certificates:', error);
+      return [];
+    }
+
+    return data || [];
+  };
+
   const submitContactForm = async (name: string, email: string, message: string): Promise<void> => {
     const { error } = await supabase.from('contact_messages').insert([
       { name, email, message }
@@ -114,10 +161,12 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   return (
     <SupabaseContext.Provider value={{ 
-      supabase, 
-      getProjects, 
-      getExperience, 
-      getSkills, 
+      supabase,
+      isAdmin,
+      getProjects,
+      getExperience,
+      getSkills,
+      getCertificates,
       submitContactForm
     }}>
       {children}
