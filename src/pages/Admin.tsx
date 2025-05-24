@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Edit, Save, X, Loader, Download } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Loader, Download, Check, Star } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
 
-type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv';
+type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials';
+
+interface Testimonial {
+  id: string;
+  name: string;
+  position: string;
+  company: string;
+  content: string;
+  rating: number;
+  image_url?: string;
+  is_approved: boolean;
+  created_at: string;
+}
 
 const Admin: React.FC = () => {
   const { theme } = useTheme();
@@ -24,6 +36,16 @@ const Admin: React.FC = () => {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [cvLink, setCvLink] = useState('');
   const [cvLinkLoading, setCvLinkLoading] = useState(false);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonialForm, setTestimonialForm] = useState({
+    name: '',
+    position: '',
+    company: '',
+    content: '',
+    rating: 5,
+    image_url: '',
+    is_approved: false
+  });
 
   // Form states
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -75,39 +97,88 @@ const Admin: React.FC = () => {
     setLoading(true);
     try {
       // Fetch messages
-      const { data: messagesData } = await supabase
+      const { data: messagesData, error: messagesError } = await supabase
         .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
+        throw messagesError;
+      }
       setMessages(messagesData || []);
 
       // Fetch projects
-      const { data: projectsData } = await supabase
+      const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError);
+        throw projectsError;
+      }
       setProjects(projectsData || []);
 
       // Fetch experiences
-      const { data: experiencesData } = await supabase
+      const { data: experiencesData, error: experiencesError } = await supabase
         .from('experience')
         .select('*')
         .order('start_date', { ascending: false });
+      
+      if (experiencesError) {
+        console.error('Error fetching experiences:', experiencesError);
+        throw experiencesError;
+      }
       setExperiences(experiencesData || []);
 
       // Fetch skills
-      const { data: skillsData } = await supabase
+      const { data: skillsData, error: skillsError } = await supabase
         .from('skills')
         .select('*')
         .order('category', { ascending: true });
+      
+      if (skillsError) {
+        console.error('Error fetching skills:', skillsError);
+        throw skillsError;
+      }
       setSkills(skillsData || []);
 
       // Fetch certificates
-      const { data: certificatesData } = await supabase
+      const { data: certificatesData, error: certificatesError } = await supabase
         .from('certificates')
         .select('*')
         .order('date', { ascending: false });
+      
+      if (certificatesError) {
+        console.error('Error fetching certificates:', certificatesError);
+        throw certificatesError;
+      }
       setCertificates(certificatesData || []);
+
+      // Fetch testimonials
+      const { data: testimonialsData, error: testimonialsError } = await supabase
+        .from('testimonials')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (testimonialsError) {
+        console.error('Error fetching testimonials:', testimonialsError);
+        throw testimonialsError;
+      }
+
+      if (testimonialsData) {
+        // Ensure all testimonials have the required fields
+        const validTestimonials = testimonialsData.map(testimonial => ({
+          ...testimonial,
+          is_approved: testimonial.is_approved ?? false,
+          created_at: testimonial.created_at ?? new Date().toISOString()
+        }));
+        setTestimonials(validTestimonials);
+      } else {
+        setTestimonials([]);
+      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -243,13 +314,86 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Handle testimonial operations
+  const handleTestimonialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const testimonialData = {
+        ...testimonialForm,
+        created_at: new Date().toISOString()
+      };
+
+      if (editingId) {
+        const { error } = await supabase
+          .from('testimonials')
+          .update(testimonialData)
+          .eq('id', editingId)
+          .select();
+        
+        if (error) {
+          console.error('Error updating testimonial:', error);
+          throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from('testimonials')
+          .insert([testimonialData])
+          .select();
+        
+        if (error) {
+          console.error('Error inserting testimonial:', error);
+          throw error;
+        }
+      }
+
+      setTestimonialForm({
+        name: '',
+        position: '',
+        company: '',
+        content: '',
+        rating: 5,
+        image_url: '',
+        is_approved: false
+      });
+      setEditingId(null);
+      fetchAllData();
+    } catch (error) {
+      console.error('Error saving testimonial:', error);
+    }
+  };
+
+  const handleTestimonialApprove = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('testimonials')
+        .update({ is_approved: true })
+        .eq('id', id)
+        .select();
+      
+      if (error) {
+        console.error('Error approving testimonial:', error);
+        throw error;
+      }
+      
+      fetchAllData();
+    } catch (error) {
+      console.error('Error approving testimonial:', error);
+    }
+  };
+
   // Handle delete operations
   const handleDelete = async (table: string, id: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from(table)
         .delete()
         .eq('id', id);
+      
+      if (error) {
+        console.error(`Error deleting from ${table}:`, error);
+        throw error;
+      }
+      
       fetchAllData();
     } catch (error) {
       console.error(`Error deleting from ${table}:`, error);
@@ -538,6 +682,18 @@ const Admin: React.FC = () => {
           }`}
         >
           CV
+        </button>
+        <button
+          onClick={() => setActiveContent('testimonials')}
+          className={`px-4 py-2 rounded-md transition-colors duration-300 ${
+            activeContent === 'testimonials'
+              ? 'bg-blue-600 text-white'
+              : theme === 'dark'
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Testimonials
         </button>
       </div>
       
@@ -1373,6 +1529,135 @@ const Admin: React.FC = () => {
                   </a>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Testimonials Section */}
+          {activeContent === 'testimonials' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-4">Manage Testimonials</h2>
+                <p className={`text-sm ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Review and manage testimonials submitted by users. Only approved testimonials will be displayed on the main page.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {testimonials.length === 0 ? (
+                  <div className={`text-center py-12 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    No testimonials submitted yet.
+                  </div>
+                ) : (
+                  testimonials.map((testimonial) => (
+                    <motion.div
+                      key={testimonial.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`p-6 rounded-lg shadow-md ${
+                        theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-2">
+                            {testimonial.image_url ? (
+                              <img
+                                src={testimonial.image_url}
+                                alt={testimonial.name}
+                                className="w-12 h-12 rounded-full object-cover mr-4"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl mr-4">
+                                {testimonial.name.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-bold">{testimonial.name}</h3>
+                              <p className={`text-sm ${
+                                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                {testimonial.position} at {testimonial.company}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <p className={`mt-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            {testimonial.content}
+                          </p>
+                          
+                          <div className="flex items-center mt-2">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={16}
+                                className={i < testimonial.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}
+                              />
+                            ))}
+                          </div>
+                          
+                          <div className="flex items-center mt-4 space-x-2">
+                            <span className={`inline-block text-sm px-2 py-1 rounded-full ${
+                              testimonial.is_approved
+                                ? 'bg-green-600/20 text-green-500'
+                                : 'bg-yellow-600/20 text-yellow-500'
+                            }`}>
+                              {testimonial.is_approved ? 'Approved' : 'Pending'}
+                            </span>
+                            <span className={`text-sm ${
+                              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              {new Date(testimonial.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2 ml-4">
+                          <button
+                            onClick={() => {
+                              setTestimonialForm({
+                                name: testimonial.name,
+                                position: testimonial.position,
+                                company: testimonial.company,
+                                content: testimonial.content,
+                                rating: testimonial.rating,
+                                image_url: testimonial.image_url || '',
+                                is_approved: testimonial.is_approved
+                              });
+                              setEditingId(testimonial.id);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
+                            title="Edit testimonial"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          {!testimonial.is_approved && (
+                            <button
+                              onClick={() => handleTestimonialApprove(testimonial.id)}
+                              className="p-2 text-green-600 hover:bg-green-600/10 rounded-full"
+                              title="Approve testimonial"
+                            >
+                              <Check size={16} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDelete('testimonials', testimonial.id)}
+                            className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
+                            title="Delete testimonial"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </div>
           )}
         </div>

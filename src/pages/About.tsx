@@ -9,13 +9,15 @@ import { useSupabase, Skill } from '../context/SupabaseContext';
 import UserTestimonialForm from '../components/UserTestimonialForm';
 
 interface Testimonial {
-  id: number;
+  id: string;
   name: string;
   position: string;
   company: string;
   content: string;
   rating: number;
   image_url?: string;
+  is_approved: boolean;
+  created_at: string;
 }
 
 const About: React.FC = () => {
@@ -37,14 +39,29 @@ const About: React.FC = () => {
         const categories = ['all', ...new Set(skillsData.map(skill => skill.category))];
         setSkillCategories(categories);
 
-        // Fetch testimonials
+        // Fetch approved testimonials
         const { data: testimonialsData, error } = await supabase
           .from('testimonials')
           .select('*')
+          .eq('is_approved', true)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setTestimonials(testimonialsData || []);
+        if (error) {
+          console.error('Error fetching testimonials:', error);
+          throw error;
+        }
+
+        if (testimonialsData) {
+          // Ensure all testimonials have the required fields
+          const validTestimonials = testimonialsData.map(testimonial => ({
+            ...testimonial,
+            is_approved: testimonial.is_approved ?? false,
+            created_at: testimonial.created_at ?? new Date().toISOString()
+          }));
+          setTestimonials(validTestimonials);
+        } else {
+          setTestimonials([]);
+        }
         
         setLoading(false);
       } catch (error) {
@@ -254,17 +271,6 @@ const About: React.FC = () => {
           </div>
         )}
       </section>
-
-      {testimonials.length > 0 && (
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-8">What Others Say</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <TestimonialCard key={testimonial.id} testimonial={testimonial} index={index} />
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="mt-16">
         <UserTestimonialForm />

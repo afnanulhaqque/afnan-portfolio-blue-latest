@@ -3,13 +3,15 @@ import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
 
 interface Testimonial {
-  id: number;
+  id: string;
   name: string;
   position: string;
   company: string;
   content: string;
   rating: number;
   image_url?: string;
+  is_approved: boolean;
+  created_at: string;
 }
 
 interface TestimonialCardProps {

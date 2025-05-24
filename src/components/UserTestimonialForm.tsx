@@ -16,23 +16,75 @@ const UserTestimonialForm: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitStatus('idle');
+    setSubmitStatus('submitting');
+    setErrorMessage('');
 
     try {
-      const { error } = await supabase
+      // Validate required fields
+      if (!formData.name || !formData.position || !formData.company || !formData.content) {
+        throw new Error('Please fill in all required fields');
+      }
+
+      // Validate rating
+      if (formData.rating < 1 || formData.rating > 5) {
+        throw new Error('Please select a valid rating');
+      }
+
+      // Prepare testimonial data
+      const testimonialData = {
+        ...formData,
+        is_approved: false,
+        created_at: new Date().toISOString()
+      };
+
+      // Log the data being sent
+      console.log('Submitting testimonial data:', testimonialData);
+
+      // First, check if we can connect to Supabase
+      const { data: testData, error: testError } = await supabase
         .from('testimonials')
-        .insert([{
-          ...formData,
-          is_approved: false,
-          created_at: new Date().toISOString()
-        }]);
+        .select('count')
+        .limit(1);
 
-      if (error) throw error;
+      if (testError) {
+        console.error('Supabase connection test error:', {
+          message: testError.message,
+          details: testError.details,
+          hint: testError.hint,
+          code: testError.code
+        });
+        throw new Error(`Database connection error: ${testError.message}`);
+      }
 
+      // Now try to insert the testimonial
+      const { data, error } = await supabase
+        .from('testimonials')
+        .insert([testimonialData])
+        .select();
+
+      if (error) {
+        console.error('Supabase insert error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          table: 'testimonials',
+          data: testimonialData
+        });
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        console.error('No data returned from insert operation');
+        throw new Error('No data returned from the server');
+      }
+
+      console.log('Testimonial submitted successfully:', data);
       setSubmitStatus('success');
       setFormData({
         name: '',
@@ -42,9 +94,18 @@ const UserTestimonialForm: React.FC = () => {
         rating: 5,
         image_url: ''
       });
-    } catch (error) {
-      console.error('Error submitting testimonial:', error);
+    } catch (error: any) {
+      console.error('Error submitting testimonial:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        formData
+      });
       setSubmitStatus('error');
+      setErrorMessage(
+        error.message || 
+        'There was an error submitting your testimonial. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -62,7 +123,7 @@ const UserTestimonialForm: React.FC = () => {
         </div>
       ) : submitStatus === 'error' ? (
         <div className="text-red-600 dark:text-red-400 mb-4">
-          There was an error submitting your testimonial. Please try again.
+          {errorMessage}
         </div>
       ) : null}
 
@@ -71,7 +132,7 @@ const UserTestimonialForm: React.FC = () => {
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Your Name
+            Your Name *
           </label>
           <input
             type="text"
@@ -88,7 +149,7 @@ const UserTestimonialForm: React.FC = () => {
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Your Position
+            Your Position *
           </label>
           <input
             type="text"
@@ -105,7 +166,7 @@ const UserTestimonialForm: React.FC = () => {
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Your Company
+            Your Company *
           </label>
           <input
             type="text"
@@ -122,7 +183,7 @@ const UserTestimonialForm: React.FC = () => {
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Your Testimonial
+            Your Testimonial *
           </label>
           <textarea
             value={formData.content}
@@ -139,7 +200,7 @@ const UserTestimonialForm: React.FC = () => {
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Rating
+            Rating *
           </label>
           <div className="flex items-center space-x-1">
             {[1, 2, 3, 4, 5].map((rating) => (
@@ -166,12 +227,13 @@ const UserTestimonialForm: React.FC = () => {
             Profile Image URL (optional)
           </label>
           <input
-            type="text"
+            type="url"
             value={formData.image_url}
             onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
             className={`w-full p-2 border rounded ${
               theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
             }`}
+            placeholder="https://example.com/image.jpg"
           />
         </div>
 
