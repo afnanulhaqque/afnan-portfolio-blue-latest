@@ -11,6 +11,7 @@ interface Achievement {
   image_url?: string;
   is_approved: boolean;
   created_at: string;
+  awarded_by?: string;
 }
 
 interface AchievementCardProps {
@@ -56,7 +57,15 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, index })
           </div>
         )}
         
-        <div className={`flex justify-between items-center text-sm ${
+        {achievement.awarded_by && (
+          <p className={`text-sm ${
+            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            Awarded By: {achievement.awarded_by}
+          </p>
+        )}
+        
+        <div className={`flex justify-between items-center text-sm mt-2 ${
           theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
         }`}>
           <span>

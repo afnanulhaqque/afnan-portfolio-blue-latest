@@ -127,6 +127,18 @@ const Contact: React.FC = () => {
                   >
                     Twitter
                   </a>
+                  <a 
+                    href="https://www.instagram.com/afnanulhaqque" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${
+                      theme === 'dark' 
+                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Instagram
+                  </a>
                 </div>
               </div>
             </div>

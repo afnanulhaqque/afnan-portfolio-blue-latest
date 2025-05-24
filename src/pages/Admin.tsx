@@ -28,6 +28,7 @@ interface Achievement {
   image_url?: string;
   is_approved: boolean;
   created_at: string;
+  awarded_by?: string;
 }
 
 const Admin: React.FC = () => {
@@ -73,12 +74,14 @@ const Admin: React.FC = () => {
     date: Date | null;
     image_url: string;
     is_approved: boolean;
+    awarded_by: string;
   }>({
     title: '',
     description: '',
     date: null,
     image_url: '',
-    is_approved: false
+    is_approved: false,
+    awarded_by: ''
   });
 
   // Form states
@@ -246,7 +249,8 @@ const Admin: React.FC = () => {
           ...ach,
           date: ach.date ? new Date(ach.date) : null,
           is_approved: ach.is_approved ?? false,
-          created_at: ach.created_at ?? new Date().toISOString()
+          created_at: ach.created_at ?? new Date().toISOString(),
+          awarded_by: ach.awarded_by ?? ''
         }));
         setAchievements(formattedAchievements);
       } else {
@@ -461,50 +465,75 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Function to convert Google Drive URL to direct image URL
+  const convertGoogleDriveUrl = (url: string) => {
+    if (!url) return url;
+    
+    // If it's already a direct image URL, return as is
+    if (url.includes('drive.google.com/uc')) return url;
+    
+    // Extract file ID from Google Drive URL
+    const fileIdMatch = url.match(/\/d\/(.*?)\/|id=(.*?)(&|$)/);
+    if (!fileIdMatch) return url;
+    
+    const fileId = fileIdMatch[1] || fileIdMatch[2];
+    return `https://drive.google.com/uc?export=view&id=${fileId}`;
+  };
+
   // Handle achievement operations
   const handleAchievementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!achievementForm.title || !achievementForm.description || !achievementForm.date) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
       const dataToSubmit = {
-        ...achievementForm,
-        date: achievementForm.date ? achievementForm.date.toISOString().split('T')[0] : null,
+        title: achievementForm.title.trim(),
+        description: achievementForm.description.trim(),
+        date: achievementForm.date.toISOString().split('T')[0],
+        image_url: achievementForm.image_url ? convertGoogleDriveUrl(achievementForm.image_url.trim()) : null,
+        awarded_by: achievementForm.awarded_by ? achievementForm.awarded_by.trim() : null,
+        is_approved: true,
         created_at: new Date().toISOString()
       };
 
+      let error;
       if (editingId) {
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('achievements')
           .update(dataToSubmit)
-          .eq('id', editingId)
-          .select();
-        
-        if (error) {
-          console.error('Error updating achievement:', error);
-          throw error;
-        }
+          .eq('id', editingId);
+        error = updateError;
       } else {
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('achievements')
-          .insert([dataToSubmit])
-          .select();
-        
-        if (error) {
-          console.error('Error inserting achievement:', error);
-          throw error;
-        }
+          .insert([dataToSubmit]);
+        error = insertError;
       }
 
+      if (error) {
+        console.error('Error saving achievement:', error);
+        alert('Failed to save achievement: ' + error.message);
+        return;
+      }
+
+      // Reset form and refresh data
       setAchievementForm({
         title: '',
         description: '',
         date: null,
         image_url: '',
-        is_approved: false
+        is_approved: false,
+        awarded_by: ''
       });
       setEditingId(null);
-      fetchAllData();
-    } catch (error) {
+      await fetchAllData();
+      alert('Achievement saved successfully!');
+    } catch (error: any) {
       console.error('Error saving achievement:', error);
+      alert('Failed to save achievement: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -1844,9 +1873,7 @@ const Admin: React.FC = () => {
                       theme === 'dark'
                         ? 'bg-gray-800 text-white'
                         : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                    }`}
+                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
                     required
                   />
                 </div>
@@ -1905,6 +1932,22 @@ const Admin: React.FC = () => {
                       theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
                     }`}
                     placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Awarded By</label>
+                  <input
+                    type="text"
+                    value={achievementForm.awarded_by}
+                    onChange={(e) => setAchievementForm({ ...achievementForm, awarded_by: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
                   />
                 </div>
                 
@@ -1995,7 +2038,8 @@ const Admin: React.FC = () => {
                                 description: achievement.description,
                                 date: achievement.date ? new Date(achievement.date) : null,
                                 image_url: achievement.image_url || '',
-                                is_approved: achievement.is_approved
+                                is_approved: achievement.is_approved,
+                                awarded_by: achievement.awarded_by || ''
                               });
                             }}
                             className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"

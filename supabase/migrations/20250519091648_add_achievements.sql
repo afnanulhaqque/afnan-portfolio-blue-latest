@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS public.achievements (
     date date NOT NULL,
     image_url text,
     is_approved boolean DEFAULT false,
-    created_at timestamptz DEFAULT now()
+    created_at timestamptz DEFAULT now(),
+    awarded_by text
 );
 
 -- Enable Row Level Security on achievements table
@@ -25,6 +26,13 @@ CREATE POLICY "Allow public to read approved achievements"
     FOR SELECT
     TO public
     USING (is_approved = true);
+
+-- Allow authenticated users to read all achievements
+CREATE POLICY "Allow authenticated users to read all achievements"
+    ON public.achievements
+    FOR SELECT
+    TO authenticated
+    USING (true);
 
 -- Allow authenticated users to manage achievements
 CREATE POLICY "Allow authenticated users to manage achievements"

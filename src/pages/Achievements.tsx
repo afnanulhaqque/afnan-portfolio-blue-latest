@@ -11,6 +11,9 @@ interface Achievement {
   date: string;
   organization: string;
   image_url?: string;
+  is_approved: boolean;
+  created_at: string;
+  awarded_by?: string;
 }
 
 const Achievements: React.FC = () => {
@@ -25,10 +28,21 @@ const Achievements: React.FC = () => {
         const { data, error } = await supabase
           .from('achievements')
           .select('*')
+          .eq('is_approved', true)
           .order('date', { ascending: false });
 
         if (error) throw error;
-        setAchievements(data || []);
+        if (data) {
+          const validAchievements = data.map(achievement => ({
+            ...achievement,
+            is_approved: achievement.is_approved ?? false,
+            created_at: achievement.created_at ?? new Date().toISOString(),
+            awarded_by: achievement.awarded_by ?? ''
+          }));
+          setAchievements(validAchievements);
+        } else {
+          setAchievements([]);
+        }
       } catch (error) {
         console.error('Error fetching achievements:', error);
       } finally {
@@ -84,7 +98,7 @@ const Achievements: React.FC = () => {
                   <p className={`text-sm mb-2 ${
                     theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    Awarded by {achievement.organization}
+                    Awarded by {achievement.awarded_by || 'Self'}
                   </p>
                   
                   <p className={`text-sm mb-4 ${

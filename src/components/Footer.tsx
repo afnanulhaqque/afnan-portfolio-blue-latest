@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Linkedin, Github, Mail, Twitter } from 'lucide-react';
+import { Linkedin, Github, Mail, Twitter, Instagram } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Footer: React.FC = () => {
@@ -77,6 +77,19 @@ const Footer: React.FC = () => {
                 aria-label="Twitter"
               >
                 <Twitter size={18} />
+              </a>
+              <a 
+                href="https://www.instagram.com/afnanulhaqque" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={`p-2 rounded-full transition-colors duration-300 ${
+                  theme === 'dark' 
+                    ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                    : 'text-gray-600 hover:text-black hover:bg-gray-200'
+                }`}
+                aria-label="Instagram"
+              >
+                <Instagram size={18} />
               </a>
             </div>
           </div>
