@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { convertGoogleDriveUrl } from '../utils/imageUtils';
+import { validateAndConvertImageUrl } from '../utils/imageUtils';
 
 type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements';
 
@@ -296,7 +296,7 @@ const Admin: React.FC = () => {
     try {
       const projectData = {
         ...projectForm,
-        image_url: projectForm.image_url ? convertGoogleDriveUrl(projectForm.image_url.trim()) : null,
+        image_url: projectForm.image_url ? validateAndConvertImageUrl(projectForm.image_url.trim()) : null,
         tags: projectForm.tags.split(',').map(tag => tag.trim())
       };
 
@@ -384,7 +384,7 @@ const Admin: React.FC = () => {
     try {
       const certificateData = {
         ...certificateForm,
-        image_url: certificateForm.image_url ? convertGoogleDriveUrl(certificateForm.image_url.trim()) : null
+        image_url: certificateForm.image_url ? validateAndConvertImageUrl(certificateForm.image_url.trim()) : null
       };
 
       if (editingId) {
@@ -409,16 +409,16 @@ const Admin: React.FC = () => {
   const handleTestimonialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const dataToSubmit = {
+      const testimonialData = {
         ...testimonialForm,
-        image_url: testimonialForm.image_url ? convertGoogleDriveUrl(testimonialForm.image_url.trim()) : null,
+        image_url: testimonialForm.image_url ? validateAndConvertImageUrl(testimonialForm.image_url.trim()) : null,
         created_at: new Date().toISOString()
       };
 
       if (editingId) {
         const { error } = await supabase
           .from('testimonials')
-          .update(dataToSubmit)
+          .update(testimonialData)
           .eq('id', editingId)
           .select();
         
@@ -429,7 +429,7 @@ const Admin: React.FC = () => {
       } else {
         const { error } = await supabase
           .from('testimonials')
-          .insert([dataToSubmit])
+          .insert([testimonialData])
           .select();
         
         if (error) {
@@ -482,11 +482,9 @@ const Admin: React.FC = () => {
         return;
       }
 
-      const dataToSubmit = {
-        title: achievementForm.title.trim(),
-        description: achievementForm.description.trim(),
-        date: achievementForm.date.toISOString().split('T')[0],
-        image_url: achievementForm.image_url ? convertGoogleDriveUrl(achievementForm.image_url.trim()) : null,
+      const achievementData = {
+        ...achievementForm,
+        image_url: achievementForm.image_url ? validateAndConvertImageUrl(achievementForm.image_url.trim()) : null,
         awarded_by: achievementForm.awarded_by ? achievementForm.awarded_by.trim() : null,
         is_approved: true,
         created_at: new Date().toISOString()
@@ -496,13 +494,13 @@ const Admin: React.FC = () => {
       if (editingId) {
         const { error: updateError } = await supabase
           .from('achievements')
-          .update(dataToSubmit)
+          .update(achievementData)
           .eq('id', editingId);
         error = updateError;
       } else {
         const { error: insertError } = await supabase
           .from('achievements')
-          .insert([dataToSubmit]);
+          .insert([achievementData]);
         error = insertError;
       }
 
@@ -1632,7 +1630,7 @@ const Admin: React.FC = () => {
                         {certificate.image_url && (
                           <div className="mt-4 relative w-48 h-32">
                             <img
-                              src={convertGoogleDriveUrl(certificate.image_url)}
+                              src={validateAndConvertImageUrl(certificate.image_url)}
                               alt={certificate.title}
                               className="w-full h-full object-cover rounded"
                               onError={(e) => {
@@ -1769,7 +1767,7 @@ const Admin: React.FC = () => {
                           <div className="flex items-center mb-2">
                             {testimonial.image_url ? (
                               <img
-                                src={convertGoogleDriveUrl(testimonial.image_url)}
+                                src={validateAndConvertImageUrl(testimonial.image_url)}
                                 alt={testimonial.name}
                                 className="w-12 h-12 rounded-full object-cover mr-4"
                               />
@@ -2028,7 +2026,7 @@ const Admin: React.FC = () => {
                           </p>
                           {achievement.image_url && (
                             <img
-                              src={convertGoogleDriveUrl(achievement.image_url)}
+                              src={validateAndConvertImageUrl(achievement.image_url)}
                               alt={achievement.title}
                               className="mt-4 w-32 h-20 object-cover rounded"
                             />

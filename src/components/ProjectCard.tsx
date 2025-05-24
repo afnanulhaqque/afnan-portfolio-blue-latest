@@ -1,9 +1,9 @@
-import React from 'react';
-import { ExternalLink, Github } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ExternalLink, Github, Image } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { Project } from '../context/SupabaseContext';
-import { convertGoogleDriveUrl } from '../utils/imageUtils';
+import { validateAndConvertImageUrl } from '../utils/imageUtils';
 
 interface ProjectCardProps {
   project: Project;
@@ -12,7 +12,44 @@ interface ProjectCardProps {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   const { theme } = useTheme();
-  
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageUrl, setImageUrl] = useState('');
+
+  useEffect(() => {
+    const loadImage = async () => {
+      if (project.image_url) {
+        try {
+          setImageLoading(true);
+          setImageError(false);
+          const convertedUrl = await validateAndConvertImageUrl(project.image_url);
+          setImageUrl(convertedUrl);
+        } catch (error) {
+          console.error('Error loading image:', error);
+          setImageError(true);
+        } finally {
+          setImageLoading(false);
+        }
+      }
+    };
+
+    loadImage();
+  }, [project.image_url]);
+
+  const handleImageError = () => {
+    console.error('Failed to load image:', {
+      originalUrl: project.image_url,
+      convertedUrl: imageUrl
+    });
+    setImageError(true);
+    setImageLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+    setImageError(false);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -22,13 +59,41 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
         theme === 'dark' ? 'bg-gray-900 hover:shadow-blue-500/20' : 'bg-white hover:shadow-blue-500/30'
       }`}
     >
-      <div className="h-48 overflow-hidden">
-        <img 
-          src={convertGoogleDriveUrl(project.image_url)} 
-          alt={project.title} 
-          className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110"
-        />
-      </div>
+      {project.image_url && (
+        <div className="relative w-full h-48 mb-4 overflow-hidden rounded-lg">
+          {imageLoading && (
+            <div className={`absolute inset-0 flex items-center justify-center ${
+              theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+            }`}>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          )}
+          {!imageError ? (
+            <img
+              src={imageUrl}
+              alt={project.title}
+              className={`w-full h-full object-cover ${imageLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              crossOrigin="anonymous"
+              loading="lazy"
+            />
+          ) : (
+            <div className={`w-full h-full flex items-center justify-center ${
+              theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+            }`}>
+              <div className="text-center">
+                <Image size={32} className="mx-auto mb-2 text-gray-400" />
+                <p className={`text-sm ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Image not available
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="p-6">
         <div className="flex flex-wrap gap-2 mb-4">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
-import { convertGoogleDriveUrl } from '../utils/imageUtils';
+import { convertGoogleDriveUrl, validateAndConvertImageUrl } from '../utils/imageUtils';
 
 interface Testimonial {
   id: string;
@@ -29,15 +29,17 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, index })
       className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6"
     >
       <div className="flex items-center mb-4">
-        {testimonial.image_url ? (
-          <img
-            src={convertGoogleDriveUrl(testimonial.image_url)}
-            alt={testimonial.name}
-            className="w-12 h-12 rounded-full object-cover mr-4"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl mr-4">
-            {testimonial.name.charAt(0)}
+        {testimonial.image_url && (
+          <div className="w-16 h-16 rounded-full overflow-hidden mb-4">
+            <img
+              src={validateAndConvertImageUrl(testimonial.image_url)}
+              alt={testimonial.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://via.placeholder.com/150?text=User';
+              }}
+            />
           </div>
         )}
         <div>
