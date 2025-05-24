@@ -7,6 +7,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { validateAndConvertImageUrl } from '../utils/imageUtils';
 import { compressImage } from '../utils/imageUtils';
+import CertificateDetail from '../components/CertificateDetail';
 
 type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements';
 
@@ -129,6 +130,9 @@ const Admin: React.FC = () => {
 
   // Add state for image URLs
   const [imageUrls, setImageUrls] = useState<{[key: string]: string}>({});
+
+  // Add this state near the other state declarations
+  const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
 
   // Function to handle image URL conversion
   const handleImageUrl = async (url: string | undefined): Promise<string> => {
@@ -1296,11 +1300,13 @@ const Admin: React.FC = () => {
                       }`}>
                         Current Image:
                       </label>
-                      <img 
-                        src={projects.find(p => p.id === editingId)?.image_url}
-                        alt="Current Project Image"
-                        className="w-32 h-auto rounded-md"
-                      />
+                      <div className="relative w-32 h-24 rounded-lg overflow-hidden bg-gray-100">
+                        <img
+                          src={projects.find(p => p.id === editingId)?.image_url ? (imageUrls[projects.find(p => p.id === editingId)?.image_url as string] || projects.find(p => p.id === editingId)?.image_url) : ''}
+                          alt="Current Project Image"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1887,21 +1893,18 @@ const Admin: React.FC = () => {
                       }`}>
                         Current Image:
                       </label>
-                      <div className="mt-4 relative w-full max-w-[800px] h-[600px] bg-white rounded-lg overflow-hidden">
+                      <div className="relative w-40 h-32 rounded-lg overflow-hidden bg-gray-100">
                         <img
-                          src={imageUrls[certificates.find(cert => cert.id === editingId)?.image_url] || certificates.find(cert => cert.id === editingId)?.image_url}
-                          alt={certificates.find(cert => cert.id === editingId)?.title}
-                          className="w-full h-full object-contain"
+                          src={certificates.find(cert => cert.id === editingId)?.image_url ? (imageUrls[certificates.find(cert => cert.id === editingId)?.image_url as string] || certificates.find(cert => cert.id === editingId)?.image_url) : ''}
+                          alt="Current Certificate Image"
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => setSelectedCertificate(certificates.find(cert => cert.id === editingId))}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             target.parentElement!.innerHTML = `
-                              <div class="w-full h-full flex items-center justify-center ${
-                                theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-                              } rounded">
-                                <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
+                              <div class="w-full h-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded">
+                                <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                               </div>
                             `;
                           }}
@@ -1946,21 +1949,18 @@ const Admin: React.FC = () => {
                           {certificate.description}
                         </p>
                         {certificate.image_url && (
-                          <div className="mt-4 relative w-full max-w-[800px] h-[600px] bg-white rounded-lg overflow-hidden">
+                          <div className="mt-4 relative w-40 h-32 rounded-lg overflow-hidden bg-gray-100">
                             <img
-                              src={imageUrls[certificate.image_url] || certificate.image_url}
+                              src={certificate.image_url ? (imageUrls[certificate.image_url as string] || certificate.image_url) : ''}
                               alt={certificate.title}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => certificate.image_url && setSelectedCertificate(certificate)}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
                                 target.parentElement!.innerHTML = `
-                                  <div class="w-full h-full flex items-center justify-center ${
-                                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-                                  } rounded">
-                                    <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
+                                  <div class="w-full h-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded">
+                                    <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                                   </div>
                                 `;
                               }}
@@ -1971,11 +1971,9 @@ const Admin: React.FC = () => {
                       <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => {
-                            // When editing, populate the form with existing certificate data
                             setCertificateForm({
                               title: certificate.title,
                               issuer: certificate.issuer,
-                              // Convert the date string from Supabase to a Date object for the DatePicker
                               date: certificate.date ? new Date(certificate.date) : null,
                               description: certificate.description,
                               image_url: certificate.image_url
@@ -2390,21 +2388,17 @@ const Admin: React.FC = () => {
                             {new Date(achievement.date).toLocaleDateString()}
                           </p>
                           {achievement.image_url && (
-                            <div className="mt-4 relative w-full max-w-[800px] h-[600px] bg-white rounded-lg overflow-hidden">
+                            <div className="mt-4 relative w-40 h-32 rounded-lg overflow-hidden bg-gray-100">
                               <img
                                 src={achievement.image_url ? (imageUrls[achievement.image_url as string] || achievement.image_url) : ''}
                                 alt={achievement.title}
-                                className="w-full h-full object-contain"
+                                className="w-full h-full object-cover"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
                                   target.parentElement!.innerHTML = `
-                                    <div class="w-full h-full flex items-center justify-center ${
-                                      theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-                                    } rounded">
-                                      <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                      </svg>
+                                    <div class="w-full h-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded">
+                                      <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                                     </div>
                                   `;
                                 }}
@@ -2473,6 +2467,14 @@ const Admin: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+      {/* Add this at the end of the component, just before the closing div */}
+      {selectedCertificate && (
+        <CertificateDetail
+          certificate={selectedCertificate}
+          onClose={() => setSelectedCertificate(null)}
+          imageUrl={selectedCertificate.image_url ? (imageUrls[selectedCertificate.image_url as string] || selectedCertificate.image_url) : ''}
+        />
       )}
     </div>
   );
