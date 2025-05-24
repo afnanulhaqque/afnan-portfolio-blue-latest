@@ -51,6 +51,7 @@ const About: React.FC = () => {
         }
 
         if (testimonialsData) {
+          console.log('Fetched testimonials data:', testimonialsData);
           // Ensure all testimonials have the required fields
           const validTestimonials = testimonialsData.map(testimonial => ({
             ...testimonial,
