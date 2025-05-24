@@ -4,7 +4,7 @@ import { Plus, Trash2, Edit, Save, X, Loader, Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
 
-type ContentType = 'messages' | 'projects' | 'experience' | 'skills' | 'certificates' | 'cv';
+type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv';
 
 const Admin: React.FC = () => {
   const { theme } = useTheme();
@@ -24,7 +24,7 @@ const Admin: React.FC = () => {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [cvLink, setCvLink] = useState('');
   const [cvLinkLoading, setCvLinkLoading] = useState(false);
-  
+
   // Form states
   const [editingId, setEditingId] = useState<string | null>(null);
   const [projectForm, setProjectForm] = useState({
@@ -40,7 +40,7 @@ const Admin: React.FC = () => {
     start_date: '',
     end_date: '',
     description: '',
-    type: 'work'
+    type: 'work' as 'work' | 'education' | 'volunteer'
   });
   const [skillForm, setSkillForm] = useState({
     name: '',
@@ -492,9 +492,9 @@ const Admin: React.FC = () => {
           Projects
         </button>
         <button
-          onClick={() => setActiveContent('experience')}
+          onClick={() => setActiveContent('experiences')}
           className={`px-4 py-2 rounded-md transition-colors duration-300 ${
-            activeContent === 'experience'
+            activeContent === 'experiences'
               ? 'bg-blue-600 text-white'
               : theme === 'dark'
                 ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -796,7 +796,7 @@ const Admin: React.FC = () => {
           )}
 
           {/* Experience Section */}
-          {activeContent === 'experience' && (
+          {activeContent === 'experiences' && (
             <div>
               <form onSubmit={handleExperienceSubmit} className="mb-8 space-y-4">
                 <div>
@@ -913,7 +913,7 @@ const Admin: React.FC = () => {
                   </label>
                   <select
                     value={experienceForm.type}
-                    onChange={(e) => setExperienceForm({ ...experienceForm, type: e.target.value as 'work' | 'education' })}
+                    onChange={(e) => setExperienceForm({ ...experienceForm, type: e.target.value as 'work' | 'education' | 'volunteer' })}
                     className={`w-full p-3 rounded-md ${
                       theme === 'dark'
                         ? 'bg-gray-800 text-white'
@@ -925,6 +925,7 @@ const Admin: React.FC = () => {
                   >
                     <option value="work">Work</option>
                     <option value="education">Education</option>
+                    <option value="volunteer">Volunteer Work</option>
                   </select>
                 </div>
                 
@@ -971,7 +972,9 @@ const Admin: React.FC = () => {
                         <span className={`inline-block mt-2 text-sm px-2 py-1 rounded-full ${
                           experience.type === 'work'
                             ? 'bg-blue-600/20 text-blue-500'
-                            : 'bg-emerald-600/20 text-emerald-500'
+                            : experience.type === 'education'
+                              ? 'bg-emerald-600/20 text-emerald-500'
+                              : 'bg-teal-600/20 text-teal-500'
                         }`}>
                           {experience.type}
                         </span>

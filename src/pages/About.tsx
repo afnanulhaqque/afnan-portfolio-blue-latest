@@ -4,18 +4,31 @@ import { Link } from 'react-router-dom';
 import { BookOpen, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SkillBar from '../components/SkillBar';
+import TestimonialCard from '../components/TestimonialCard';
 import { useSupabase, Skill } from '../context/SupabaseContext';
+import UserTestimonialForm from '../components/UserTestimonialForm';
+
+interface Testimonial {
+  id: number;
+  name: string;
+  position: string;
+  company: string;
+  content: string;
+  rating: number;
+  image_url?: string;
+}
 
 const About: React.FC = () => {
   const { theme } = useTheme();
-  const { getSkills } = useSupabase();
+  const { getSkills, supabase } = useSupabase();
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSkills = async () => {
+    const fetchData = async () => {
       try {
         const skillsData = await getSkills();
         setSkills(skillsData);
@@ -23,16 +36,25 @@ const About: React.FC = () => {
         // Extract unique categories
         const categories = ['all', ...new Set(skillsData.map(skill => skill.category))];
         setSkillCategories(categories);
+
+        // Fetch testimonials
+        const { data: testimonialsData, error } = await supabase
+          .from('testimonials')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setTestimonials(testimonialsData || []);
         
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching skills:', error);
+        console.error('Error fetching data:', error);
         setLoading(false);
       }
     };
     
-    fetchSkills();
-  }, [getSkills]);
+    fetchData();
+  }, [getSkills, supabase]);
   
   // Filter skills by category
   const filteredSkills = selectedCategory === 'all' 
@@ -210,6 +232,43 @@ const About: React.FC = () => {
           </>
         )}
       </section>
+
+      {/* Testimonials Section */}
+      <section>
+        <h2 className="text-2xl md:text-3xl font-bold mb-8">
+          <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Client </span>
+          <span className="text-blue-600">Testimonials</span>
+        </h2>
+        
+        {loading ? (
+          <div className={`text-center py-8 ${
+            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Loading testimonials...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <TestimonialCard key={testimonial.id} testimonial={testimonial} index={index} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {testimonials.length > 0 && (
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold mb-8">What Others Say</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <TestimonialCard key={testimonial.id} testimonial={testimonial} index={index} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-16">
+        <UserTestimonialForm />
+      </div>
     </div>
   );
 };

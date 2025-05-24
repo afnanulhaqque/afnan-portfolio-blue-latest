@@ -37,6 +37,7 @@ const Navbar: React.FC = () => {
     { name: 'Portfolio', path: '/portfolio' },
     { name: 'Experience', path: '/experience' },
     { name: 'Certificates', path: '/certificates' },
+    { name: 'Achievements', path: '/achievements' },
     { name: 'Contact', path: '/contact' },
   ];
 

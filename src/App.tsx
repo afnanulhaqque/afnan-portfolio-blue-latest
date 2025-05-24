@@ -11,6 +11,7 @@ import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 import Admin from './pages/Admin';
 import Certificates from './pages/Certificates';
+import Achievements from './pages/Achievements';
 import { SupabaseProvider } from './context/SupabaseContext';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/experience" element={<Experience />} />
                 <Route path="/certificates" element={<Certificates />} />
+                <Route path="/achievements" element={<Achievements />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />

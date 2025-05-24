@@ -8,7 +8,7 @@ const ExperiencePage: React.FC = () => {
   const { theme } = useTheme();
   const { getExperience } = useSupabase();
   const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [filter, setFilter] = useState<'all' | 'work' | 'education'>('all');
+  const [filter, setFilter] = useState<'all' | 'work' | 'education' | 'volunteer'>('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,6 +81,18 @@ const ExperiencePage: React.FC = () => {
               }`}
             >
               Education
+            </button>
+            <button
+              onClick={() => setFilter('volunteer')}
+              className={`px-4 py-2 rounded-full text-sm transition-all duration-300 ${
+                filter === 'volunteer'
+                  ? 'bg-blue-600 text-white'
+                  : theme === 'dark'
+                    ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Volunteer Work
             </button>
           </div>
           
