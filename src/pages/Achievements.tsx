@@ -29,7 +29,6 @@ const Achievements: React.FC = () => {
         const { data, error } = await supabase
           .from('achievements')
           .select('*')
-          .eq('is_approved', true)
           .order('date', { ascending: false });
 
         if (error) throw error;
