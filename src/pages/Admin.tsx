@@ -107,15 +107,13 @@ const Admin: React.FC = () => {
   const [certificateForm, setCertificateForm] = useState<{
     title: string;
     issuer: string;
-    date: Date | null; // Changed type to Date | null
+    date: Date | null;
     description: string;
-    image_url: string;
   }>({
     title: '',
     issuer: '',
-    date: null, // Initialize as null
-    description: '',
-    image_url: ''
+    date: null,
+    description: ''
   });
 
   const [testimonialForm, setTestimonialForm] = useState({
@@ -482,25 +480,16 @@ const Admin: React.FC = () => {
       const imageFile = formData.get('image') as File;
       let imageUrl = '';
 
-      // Get form values, using certificateForm for updates
-      const title = editingId ? certificateForm.title : (formData.get('title') as string);
-      const issuer = editingId ? certificateForm.issuer : (formData.get('issuer') as string);
-      const description = editingId ? certificateForm.description : (formData.get('description') as string);
-      const date = certificateForm.date;
+      // Get form values, using certificateForm for updates and new entries
+      const title = certificateForm.title; // Read from state
+      const issuer = certificateForm.issuer; // Read from state
+      const description = certificateForm.description; // Read from state
+      const date = certificateForm.date; // Already reading from state
 
       // Validate required fields
       if (!title || !issuer || !description || !date) {
         console.log('Form validation failed:', { title, issuer, description, date });
         throw new Error('Please fill in all required fields');
-      }
-
-      if (imageFile && imageFile.size > 0) {
-        // Upload the actual file to Supabase storage
-        imageUrl = await handleImageUrl(imageFile.name);
-      } else if (editingId) {
-        // If no new image, keep the existing one during update
-        const existingCertificate = certificates.find(cert => cert.id === editingId);
-        imageUrl = existingCertificate?.image_url || '';
       }
 
       // Format the date before submitting
@@ -511,7 +500,6 @@ const Admin: React.FC = () => {
         issuer,
         date: formattedDate,
         description,
-        image_url: imageUrl
       };
 
       console.log('Submitting certificate data:', certificateData);
@@ -535,7 +523,6 @@ const Admin: React.FC = () => {
         issuer: '',
         date: null,
         description: '',
-        image_url: ''
       });
       setEditingId(null);
       await fetchAllData();
@@ -1842,62 +1829,6 @@ const Admin: React.FC = () => {
                     required
                   />
                 </div>
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Certificate Image
-                  </label>
-                  <input
-                    type="file"
-                    name="image"
-                    accept="image/*"
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                    }`}
-                  />
-                  <p className={`mt-1 text-sm ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    {editingId ? 'Leave empty to keep existing image' : 'Upload a certificate image (max 5MB, JPG, PNG, GIF, or WebP)'}
-                  </p>
-                   {/* Display existing image when editing */}
-                  {editingId && certificates.find(cert => cert.id === editingId)?.image_url && (
-                    <div className="mt-4">
-                      <label className={`block mb-2 text-sm font-medium ${
-                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Current Image:
-                      </label>
-                      <div className="relative w-40 h-32 rounded-lg overflow-hidden bg-gray-100">
-                        <img
-                          src={certificates.find(cert => cert.id === editingId)?.image_url ? (imageUrls[certificates.find(cert => cert.id === editingId)?.image_url as string] || certificates.find(cert => cert.id === editingId)?.image_url) : ''}
-                          alt="Current Certificate Image"
-                          className="w-full h-full object-cover cursor-pointer"
-                          onClick={() => {
-                            const certificate = certificates.find(cert => cert.id === editingId);
-                            if (certificate) {
-                              setSelectedCertificate(certificate);
-                            }
-                          }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            target.parentElement!.innerHTML = `
-                              <div class="w-full h-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded">
-                                <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                              </div>
-                            `;
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
                 <button
                   type="submit"
                   className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
@@ -1933,25 +1864,6 @@ const Admin: React.FC = () => {
                         }`}>
                           {certificate.description}
                         </p>
-                        {certificate.image_url && (
-                          <div className="mt-4 relative w-40 h-32 rounded-lg overflow-hidden bg-gray-100">
-                            <img
-                              src={certificate.image_url ? (imageUrls[certificate.image_url as string] || certificate.image_url) : ''}
-                              alt={certificate.title}
-                              className="w-full h-full object-cover cursor-pointer"
-                              onClick={() => certificate.image_url && setSelectedCertificate(certificate)}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.parentElement!.innerHTML = `
-                                  <div class="w-full h-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded">
-                                    <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                  </div>
-                                `;
-                              }}
-                            />
-                          </div>
-                        )}
                       </div>
                       <div className="flex space-x-2 ml-4">
                         <button
@@ -1961,7 +1873,6 @@ const Admin: React.FC = () => {
                               issuer: certificate.issuer,
                               date: certificate.date ? new Date(certificate.date) : null,
                               description: certificate.description,
-                              image_url: certificate.image_url
                             });
                             setEditingId(certificate.id);
                           }}
@@ -1976,15 +1887,6 @@ const Admin: React.FC = () => {
                         >
                           <Trash2 size={16} />
                         </button>
-                        {editingId === certificate.id ? (
-                          <button
-                            onClick={() => handleDeleteImage('certificates', certificate.id)}
-                            className="p-2 text-orange-600 hover:bg-orange-600/10 rounded-full"
-                            title="Delete image"
-                          >
-                            <X size={16} />
-                          </button>
-                        ) : null}
                       </div>
                     </div>
                   </motion.div>
@@ -2291,30 +2193,6 @@ const Admin: React.FC = () => {
                   <label htmlFor="achievementApproved" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>Approved</label>
                 </div>
                 
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Achievement Image
-                  </label>
-                  <input
-                    type="file"
-                    name="image"
-                    accept="image/*"
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                    }`}
-                  />
-                  <p className={`mt-1 text-sm ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    Upload an achievement image (max 5MB, JPG, PNG, GIF, or WebP)
-                  </p>
-                </div>
                 <button
                   type="submit"
                   className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
@@ -2353,24 +2231,6 @@ const Admin: React.FC = () => {
                           }`}>
                             {new Date(achievement.date).toLocaleDateString()}
                           </p>
-                          {achievement.image_url && (
-                            <div className="mt-4 relative w-40 h-32 rounded-lg overflow-hidden bg-gray-100">
-                              <img
-                                src={achievement.image_url ? (imageUrls[achievement.image_url as string] || achievement.image_url) : ''}
-                                alt={achievement.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  target.parentElement!.innerHTML = `
-                                    <div class="w-full h-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded">
-                                      <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                    </div>
-                                  `;
-                                }}
-                              />
-                            </div>
-                          )}
                           <div className="flex items-center mt-4 space-x-2">
                             <span className={`inline-block text-sm px-2 py-1 rounded-full ${
                               achievement.is_approved
@@ -2388,7 +2248,6 @@ const Admin: React.FC = () => {
                                 title: achievement.title,
                                 description: achievement.description,
                                 date: new Date(achievement.date),
-                                image_url: achievement.image_url || '',
                                 is_approved: achievement.is_approved,
                                 awarded_by: achievement.awarded_by || ''
                               });
@@ -2415,15 +2274,6 @@ const Admin: React.FC = () => {
                           >
                             <Trash2 size={16} />
                           </button>
-                          {editingId === achievement.id ? (
-                            <button
-                              onClick={() => handleDeleteImage('achievements', achievement.id)}
-                              className="p-2 text-orange-600 hover:bg-orange-600/10 rounded-full"
-                              title="Delete image"
-                            >
-                              <X size={16} />
-                            </button>
-                          ) : null}
                         </div>
                       </div>
                     </motion.div>
@@ -2433,14 +2283,6 @@ const Admin: React.FC = () => {
             </div>
           )}
         </div>
-      )}
-      {/* Add this at the end of the component, just before the closing div */}
-      {selectedCertificate && (
-        <CertificateDetail
-          certificate={selectedCertificate}
-          onClose={() => setSelectedCertificate(null)}
-          imageUrl={selectedCertificate.image_url ? (imageUrls[selectedCertificate.image_url] || selectedCertificate.image_url) : ''}
-        />
       )}
     </div>
   );
