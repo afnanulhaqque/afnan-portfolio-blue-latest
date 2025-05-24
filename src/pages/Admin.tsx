@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { Plus, Trash2, Edit, Save, X, Loader, Download, Check, Star } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 
-type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials';
+type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements';
 
 interface Testimonial {
   id: string;
@@ -13,6 +15,16 @@ interface Testimonial {
   company: string;
   content: string;
   rating: number;
+  image_url?: string;
+  is_approved: boolean;
+  created_at: string;
+}
+
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
   image_url?: string;
   is_approved: boolean;
   created_at: string;
@@ -37,12 +49,34 @@ const Admin: React.FC = () => {
   const [cvLink, setCvLink] = useState('');
   const [cvLinkLoading, setCvLinkLoading] = useState(false);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [testimonialForm, setTestimonialForm] = useState({
+  const [testimonialForm, setTestimonialForm] = useState<{
+    name: string;
+    position: string;
+    company: string;
+    content: string;
+    rating: number;
+    image_url: string;
+    is_approved: boolean;
+  }>({
     name: '',
     position: '',
     company: '',
     content: '',
     rating: 5,
+    image_url: '',
+    is_approved: false
+  });
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [achievementForm, setAchievementForm] = useState<{
+    title: string;
+    description: string;
+    date: Date | null;
+    image_url: string;
+    is_approved: boolean;
+  }>({
+    title: '',
+    description: '',
+    date: null,
     image_url: '',
     is_approved: false
   });
@@ -56,13 +90,20 @@ const Admin: React.FC = () => {
     tags: '',
     link: ''
   });
-  const [experienceForm, setExperienceForm] = useState({
+  const [experienceForm, setExperienceForm] = useState<{
+    position: string;
+    organization: string;
+    start_date: Date | null;
+    end_date: Date | null;
+    description: string;
+    type: 'work' | 'education' | 'volunteer';
+  }>({
     position: '',
     organization: '',
-    start_date: '',
-    end_date: '',
+    start_date: null,
+    end_date: null,
     description: '',
-    type: 'work' as 'work' | 'education' | 'volunteer'
+    type: 'work'
   });
   const [skillForm, setSkillForm] = useState({
     name: '',
@@ -130,7 +171,17 @@ const Admin: React.FC = () => {
         console.error('Error fetching experiences:', experiencesError);
         throw experiencesError;
       }
-      setExperiences(experiencesData || []);
+
+      if (experiencesData) {
+        const formattedExperiences = experiencesData.map(exp => ({
+          ...exp,
+          start_date: exp.start_date ? new Date(exp.start_date) : null,
+          end_date: exp.end_date ? new Date(exp.end_date) : null,
+        }));
+        setExperiences(formattedExperiences || []);
+      } else {
+        setExperiences([]);
+      }
 
       // Fetch skills
       const { data: skillsData, error: skillsError } = await supabase
@@ -177,6 +228,29 @@ const Admin: React.FC = () => {
         setTestimonials(validTestimonials);
       } else {
         setTestimonials([]);
+      }
+
+      // Fetch achievements
+      const { data: achievementsData, error: achievementsError } = await supabase
+        .from('achievements')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      if (achievementsError) {
+        console.error('Error fetching achievements:', achievementsError);
+        throw achievementsError;
+      }
+
+      if (achievementsData) {
+        const formattedAchievements = achievementsData.map(ach => ({
+          ...ach,
+          date: ach.date ? new Date(ach.date) : null,
+          is_approved: ach.is_approved ?? false,
+          created_at: ach.created_at ?? new Date().toISOString()
+        }));
+        setAchievements(formattedAchievements);
+      } else {
+        setAchievements([]);
       }
 
     } catch (error) {
@@ -243,22 +317,28 @@ const Admin: React.FC = () => {
   const handleExperienceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const dataToSubmit = {
+        ...experienceForm,
+        start_date: experienceForm.start_date ? experienceForm.start_date.toISOString().split('T')[0] : null,
+        end_date: experienceForm.end_date ? experienceForm.end_date.toISOString().split('T')[0] : null,
+      };
+
       if (editingId) {
         await supabase
           .from('experience')
-          .update(experienceForm)
+          .update(dataToSubmit)
           .eq('id', editingId);
       } else {
         await supabase
           .from('experience')
-          .insert([experienceForm]);
+          .insert([dataToSubmit]);
       }
 
       setExperienceForm({
         position: '',
         organization: '',
-        start_date: '',
-        end_date: '',
+        start_date: null,
+        end_date: null,
         description: '',
         type: 'work'
       });
@@ -318,7 +398,7 @@ const Admin: React.FC = () => {
   const handleTestimonialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const testimonialData = {
+      const dataToSubmit = {
         ...testimonialForm,
         created_at: new Date().toISOString()
       };
@@ -326,7 +406,7 @@ const Admin: React.FC = () => {
       if (editingId) {
         const { error } = await supabase
           .from('testimonials')
-          .update(testimonialData)
+          .update(dataToSubmit)
           .eq('id', editingId)
           .select();
         
@@ -337,7 +417,7 @@ const Admin: React.FC = () => {
       } else {
         const { error } = await supabase
           .from('testimonials')
-          .insert([testimonialData])
+          .insert([dataToSubmit])
           .select();
         
         if (error) {
@@ -378,6 +458,72 @@ const Admin: React.FC = () => {
       fetchAllData();
     } catch (error) {
       console.error('Error approving testimonial:', error);
+    }
+  };
+
+  // Handle achievement operations
+  const handleAchievementSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const dataToSubmit = {
+        ...achievementForm,
+        date: achievementForm.date ? achievementForm.date.toISOString().split('T')[0] : null,
+        created_at: new Date().toISOString()
+      };
+
+      if (editingId) {
+        const { error } = await supabase
+          .from('achievements')
+          .update(dataToSubmit)
+          .eq('id', editingId)
+          .select();
+        
+        if (error) {
+          console.error('Error updating achievement:', error);
+          throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from('achievements')
+          .insert([dataToSubmit])
+          .select();
+        
+        if (error) {
+          console.error('Error inserting achievement:', error);
+          throw error;
+        }
+      }
+
+      setAchievementForm({
+        title: '',
+        description: '',
+        date: null,
+        image_url: '',
+        is_approved: false
+      });
+      setEditingId(null);
+      fetchAllData();
+    } catch (error) {
+      console.error('Error saving achievement:', error);
+    }
+  };
+
+  const handleAchievementApprove = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('achievements')
+        .update({ is_approved: true })
+        .eq('id', id)
+        .select();
+      
+      if (error) {
+        console.error('Error approving achievement:', error);
+        throw error;
+      }
+      
+      fetchAllData();
+    } catch (error) {
+      console.error('Error approving achievement:', error);
     }
   };
 
@@ -695,6 +841,18 @@ const Admin: React.FC = () => {
         >
           Testimonials
         </button>
+        <button
+          onClick={() => setActiveContent('achievements')}
+          className={`px-4 py-2 rounded-md transition-colors duration-300 ${
+            activeContent === 'achievements'
+              ? 'bg-blue-600 text-white'
+              : theme === 'dark'
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Achievements
+        </button>
       </div>
       
       {loading ? (
@@ -1004,18 +1162,18 @@ const Admin: React.FC = () => {
                     }`}>
                       Start Date
                     </label>
-                    <input
-                      type="date"
-                      value={experienceForm.start_date}
-                      onChange={(e) => setExperienceForm({ ...experienceForm, start_date: e.target.value })}
+                    <DatePicker
+                      selected={experienceForm.start_date}
+                      onChange={(date: Date | null) => setExperienceForm({ ...experienceForm, start_date: date })}
+                      dateFormat="yyyy-MM-dd"
                       className={`w-full p-3 rounded-md ${
                         theme === 'dark'
                           ? 'bg-gray-800 text-white'
                           : 'bg-white text-gray-900'
-                      } border ${
-                        theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                      }`}
+                      } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
+                      placeholderText="YYYY-MM-DD"
                       required
+                      isClearable
                     />
                   </div>
                   
@@ -1025,17 +1183,17 @@ const Admin: React.FC = () => {
                     }`}>
                       End Date
                     </label>
-                    <input
-                      type="date"
-                      value={experienceForm.end_date}
-                      onChange={(e) => setExperienceForm({ ...experienceForm, end_date: e.target.value })}
+                    <DatePicker
+                      selected={experienceForm.end_date}
+                      onChange={(date: Date | null) => setExperienceForm({ ...experienceForm, end_date: date })}
+                      dateFormat="yyyy-MM-dd"
                       className={`w-full p-3 rounded-md ${
                         theme === 'dark'
                           ? 'bg-gray-800 text-white'
                           : 'bg-white text-gray-900'
-                      } border ${
-                        theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                      }`}
+                      } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
+                      placeholderText="YYYY-MM-DD"
+                      isClearable
                     />
                   </div>
                 </div>
@@ -1141,8 +1299,8 @@ const Admin: React.FC = () => {
                             setExperienceForm({
                               position: experience.position,
                               organization: experience.organization,
-                              start_date: experience.start_date,
-                              end_date: experience.end_date || '',
+                              start_date: experience.start_date ? new Date(experience.start_date) : null,
+                              end_date: experience.end_date ? new Date(experience.end_date) : null,
                               description: experience.description,
                               type: experience.type
                             });
@@ -1649,6 +1807,215 @@ const Admin: React.FC = () => {
                             onClick={() => handleDelete('testimonials', testimonial.id)}
                             className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
                             title="Delete testimonial"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Achievements Section */}
+          {activeContent === 'achievements' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-4">Manage Achievements</h2>
+                <p className={`text-sm ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Add, edit, and delete achievements. Only approved achievements will be displayed on the main page.
+                </p>
+              </div>
+
+              <form onSubmit={handleAchievementSubmit} className="mb-8 space-y-4">
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Title *</label>
+                  <input
+                    type="text"
+                    value={achievementForm.title}
+                    onChange={(e) => setAchievementForm({ ...achievementForm, title: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Description *</label>
+                  <textarea
+                    value={achievementForm.description}
+                    onChange={(e) => setAchievementForm({ ...achievementForm, description: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    rows={4}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Date *</label>
+                   <DatePicker
+                    selected={achievementForm.date}
+                    onChange={(date: Date | null) => setAchievementForm({ ...achievementForm, date: date })}
+                    dateFormat="yyyy-MM-dd"
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
+                    placeholderText="YYYY-MM-DD"
+                    required
+                    isClearable
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Image URL</label>
+                  <input
+                    type="url"
+                    value={achievementForm.image_url}
+                    onChange={(e) => setAchievementForm({ ...achievementForm, image_url: e.target.value })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="achievementApproved"
+                    checked={achievementForm.is_approved}
+                    onChange={(e) => setAchievementForm({ ...achievementForm, is_approved: e.target.checked })}
+                    className={`mr-2 ${
+                      theme === 'dark'
+                        ? 'text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-600 focus:ring-offset-gray-800'
+                        : 'text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-600 focus:ring-offset-gray-200'
+                    }`}
+                  />
+                  <label htmlFor="achievementApproved" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>Approved</label>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
+                >
+                  {editingId ? 'Update Achievement' : 'Add Achievement'}
+                </button>
+              </form>
+              
+              <div className="space-y-4">
+                {achievements.length === 0 ? (
+                  <div className={`text-center py-12 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    No achievements added yet.
+                  </div>
+                ) : (
+                  achievements.map((achievement) => (
+                    <motion.div
+                      key={achievement.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`p-6 rounded-lg shadow-md ${
+                        theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className={`font-bold mb-2 ${
+                            theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}>{achievement.title}</h3>
+                          <p className={`text-sm mb-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            {achievement.description}
+                          </p>
+                          <p className={`text-sm ${
+                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            {new Date(achievement.date).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                          {achievement.image_url && (
+                            <img
+                              src={achievement.image_url}
+                              alt={achievement.title}
+                              className="mt-4 w-32 h-20 object-cover rounded"
+                            />
+                          )}
+                          
+                          <div className="flex items-center mt-4 space-x-2">
+                            <span className={`inline-block text-sm px-2 py-1 rounded-full ${
+                              achievement.is_approved
+                                ? 'bg-green-600/20 text-green-500'
+                                : 'bg-yellow-600/20 text-yellow-500'
+                            }`}>
+                              {achievement.is_approved ? 'Approved' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2 ml-4">
+                          <button
+                            onClick={() => {
+                              setEditingId(achievement.id);
+                              setAchievementForm({
+                                title: achievement.title,
+                                description: achievement.description,
+                                date: achievement.date ? new Date(achievement.date) : null,
+                                image_url: achievement.image_url || '',
+                                is_approved: achievement.is_approved
+                              });
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
+                            title="Edit achievement"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          {!achievement.is_approved && (
+                            <button
+                              onClick={() => handleAchievementApprove(achievement.id)}
+                              className="p-2 text-green-600 hover:bg-green-600/10 rounded-full"
+                              title="Approve achievement"
+                            >
+                              <Check size={16} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDelete('achievements', achievement.id)}
+                            className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
+                            title="Delete achievement"
                           >
                             <Trash2 size={16} />
                           </button>
