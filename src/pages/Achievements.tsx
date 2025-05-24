@@ -29,6 +29,7 @@ const Achievements: React.FC = () => {
         const { data, error } = await supabase
           .from('achievements')
           .select('*')
+          .eq('is_approved', true)
           .order('date', { ascending: false });
 
         if (error) throw error;
@@ -69,7 +70,9 @@ const Achievements: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {achievements.length > 0 ? (
-            achievements.map((achievement, index) => (
+            achievements
+              .filter(achievement => achievement.is_approved)
+              .map((achievement, index) => (
               <motion.div
                 key={achievement.id}
                 initial={{ opacity: 0, y: 20 }}
