@@ -13,6 +13,7 @@ const Certificates: React.FC = () => {
     const fetchCertificates = async () => {
       try {
         const certificatesData = await getCertificates();
+        console.log('Fetched certificates data:', certificatesData);
         setCertificates(certificatesData);
         setLoading(false);
       } catch (error) {
