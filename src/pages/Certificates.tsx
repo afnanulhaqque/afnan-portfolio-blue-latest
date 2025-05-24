@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { Award } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, Certificate } from '../context/SupabaseContext';
+import { convertGoogleDriveUrl } from '../utils/imageUtils';
 
 const Certificates: React.FC = () => {
   const { theme } = useTheme();
   const { getCertificates } = useSupabase();
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchCertificates = async () => {
@@ -24,6 +26,10 @@ const Certificates: React.FC = () => {
     
     fetchCertificates();
   }, [getCertificates]);
+
+  const handleImageError = (certificateId: string) => {
+    setImageErrors(prev => ({ ...prev, [certificateId]: true }));
+  };
 
   return (
     <div className="pt-20">
@@ -52,11 +58,20 @@ const Certificates: React.FC = () => {
                 }`}
               >
                 <div className="h-48 overflow-hidden">
-                  <img 
-                    src={certificate.image_url} 
-                    alt={certificate.title} 
-                    className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110"
-                  />
+                  {!imageErrors[certificate.id] ? (
+                    <img 
+                      src={convertGoogleDriveUrl(certificate.image_url)} 
+                      alt={certificate.title} 
+                      className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110"
+                      onError={() => handleImageError(certificate.id)}
+                    />
+                  ) : (
+                    <div className={`w-full h-full flex items-center justify-center ${
+                      theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                      <Award size={48} className="text-blue-600" />
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-6">

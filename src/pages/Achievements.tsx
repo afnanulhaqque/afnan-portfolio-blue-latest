@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useSupabase } from '../context/SupabaseContext';
 import { Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { convertGoogleDriveUrl } from '../utils/imageUtils';
 
 interface Achievement {
   id: number;
@@ -82,7 +83,7 @@ const Achievements: React.FC = () => {
                 {achievement.image_url && (
                   <div className="h-48 overflow-hidden">
                     <img 
-                      src={achievement.image_url} 
+                      src={convertGoogleDriveUrl(achievement.image_url)} 
                       alt={achievement.title} 
                       className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110"
                     />

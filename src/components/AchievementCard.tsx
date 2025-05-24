@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { convertGoogleDriveUrl } from '../utils/imageUtils';
 
 interface Achievement {
   id: string;
@@ -50,7 +51,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, index })
         {achievement.image_url && (
           <div className="mb-4">
             <img
-              src={achievement.image_url}
+              src={convertGoogleDriveUrl(achievement.image_url)}
               alt={achievement.title}
               className="w-full h-48 object-cover rounded-lg"
             />

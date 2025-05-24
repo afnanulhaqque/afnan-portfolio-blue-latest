@@ -3,6 +3,7 @@ import { ExternalLink, Github } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { Project } from '../context/SupabaseContext';
+import { convertGoogleDriveUrl } from '../utils/imageUtils';
 
 interface ProjectCardProps {
   project: Project;
@@ -23,7 +24,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
     >
       <div className="h-48 overflow-hidden">
         <img 
-          src={project.image_url} 
+          src={convertGoogleDriveUrl(project.image_url)} 
           alt={project.title} 
           className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110"
         />

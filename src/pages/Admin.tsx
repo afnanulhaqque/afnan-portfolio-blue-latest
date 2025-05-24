@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import { convertGoogleDriveUrl } from '../utils/imageUtils';
 
 type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements';
 
@@ -295,6 +296,7 @@ const Admin: React.FC = () => {
     try {
       const projectData = {
         ...projectForm,
+        image_url: projectForm.image_url ? convertGoogleDriveUrl(projectForm.image_url.trim()) : null,
         tags: projectForm.tags.split(',').map(tag => tag.trim())
       };
 
@@ -380,15 +382,20 @@ const Admin: React.FC = () => {
   const handleCertificateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const certificateData = {
+        ...certificateForm,
+        image_url: certificateForm.image_url ? convertGoogleDriveUrl(certificateForm.image_url.trim()) : null
+      };
+
       if (editingId) {
         await supabase
           .from('certificates')
-          .update(certificateForm)
+          .update(certificateData)
           .eq('id', editingId);
       } else {
         await supabase
           .from('certificates')
-          .insert([certificateForm]);
+          .insert([certificateData]);
       }
       setCertificateForm({ title: '', issuer: '', date: '', description: '', image_url: '' });
       setEditingId(null);
@@ -404,6 +411,7 @@ const Admin: React.FC = () => {
     try {
       const dataToSubmit = {
         ...testimonialForm,
+        image_url: testimonialForm.image_url ? convertGoogleDriveUrl(testimonialForm.image_url.trim()) : null,
         created_at: new Date().toISOString()
       };
 
@@ -463,21 +471,6 @@ const Admin: React.FC = () => {
     } catch (error) {
       console.error('Error approving testimonial:', error);
     }
-  };
-
-  // Function to convert Google Drive URL to direct image URL
-  const convertGoogleDriveUrl = (url: string) => {
-    if (!url) return url;
-    
-    // If it's already a direct image URL, return as is
-    if (url.includes('drive.google.com/uc')) return url;
-    
-    // Extract file ID from Google Drive URL
-    const fileIdMatch = url.match(/\/d\/(.*?)\/|id=(.*?)(&|$)/);
-    if (!fileIdMatch) return url;
-    
-    const fileId = fileIdMatch[1] || fileIdMatch[2];
-    return `https://drive.google.com/uc?export=view&id=${fileId}`;
   };
 
   // Handle achievement operations
@@ -1579,12 +1572,13 @@ const Admin: React.FC = () => {
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Image URL
+                    Image URL (Google Drive Link)
                   </label>
                   <input
                     type="text"
                     value={certificateForm.image_url}
                     onChange={(e) => setCertificateForm({ ...certificateForm, image_url: e.target.value })}
+                    placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view?usp=drive_link"
                     className={`w-full p-3 rounded-md ${
                       theme === 'dark'
                         ? 'bg-gray-800 text-white'
@@ -1594,6 +1588,11 @@ const Admin: React.FC = () => {
                     }`}
                     required
                   />
+                  <p className={`mt-1 text-sm ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    Paste your Google Drive sharing link here. Make sure the file is publicly accessible.
+                  </p>
                 </div>
                 <button
                   type="submit"
@@ -1612,8 +1611,8 @@ const Admin: React.FC = () => {
                       theme === 'dark' ? 'bg-gray-900' : 'bg-white'
                     }`}
                   >
-                    <div className="flex justify-between items-center">
-                      <div>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
                         <h3 className="font-bold">{certificate.title}</h3>
                         <p className={`text-sm ${
                           theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
@@ -1630,13 +1629,30 @@ const Admin: React.FC = () => {
                         }`}>
                           {certificate.description}
                         </p>
-                        <img
-                          src={certificate.image_url}
-                          alt={certificate.title}
-                          className="mt-2 w-32 h-20 object-cover rounded"
-                        />
+                        {certificate.image_url && (
+                          <div className="mt-4 relative w-48 h-32">
+                            <img
+                              src={convertGoogleDriveUrl(certificate.image_url)}
+                              alt={certificate.title}
+                              className="w-full h-full object-cover rounded"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.parentElement!.innerHTML = `
+                                  <div class="w-full h-full flex items-center justify-center ${
+                                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                                  } rounded">
+                                    <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                `;
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => {
                             setCertificateForm({
@@ -1688,7 +1704,7 @@ const Admin: React.FC = () => {
                     required
                   />
                   <p className={`mt-2 text-sm ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                   }`}>
                     Make sure the link is publicly accessible and allows downloads.
                   </p>
@@ -1753,7 +1769,7 @@ const Admin: React.FC = () => {
                           <div className="flex items-center mb-2">
                             {testimonial.image_url ? (
                               <img
-                                src={testimonial.image_url}
+                                src={convertGoogleDriveUrl(testimonial.image_url)}
                                 alt={testimonial.name}
                                 className="w-12 h-12 rounded-full object-cover mr-4"
                               />
@@ -2012,7 +2028,7 @@ const Admin: React.FC = () => {
                           </p>
                           {achievement.image_url && (
                             <img
-                              src={achievement.image_url}
+                              src={convertGoogleDriveUrl(achievement.image_url)}
                               alt={achievement.title}
                               className="mt-4 w-32 h-20 object-cover rounded"
                             />

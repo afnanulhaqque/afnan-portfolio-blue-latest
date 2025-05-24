@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
+import { convertGoogleDriveUrl } from '../utils/imageUtils';
 
 interface Testimonial {
   id: string;
@@ -30,7 +31,7 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, index })
       <div className="flex items-center mb-4">
         {testimonial.image_url ? (
           <img
-            src={testimonial.image_url}
+            src={convertGoogleDriveUrl(testimonial.image_url)}
             alt={testimonial.name}
             className="w-12 h-12 rounded-full object-cover mr-4"
           />
