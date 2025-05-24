@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS experience (
   start_date date NOT NULL,
   end_date date,
   description text NOT NULL,
-  type text NOT NULL CHECK (type IN ('work', 'education')),
+  type text NOT NULL CHECK (type IN ('work', 'education', 'volunteer')),
   created_at timestamptz DEFAULT now()
 );
 
