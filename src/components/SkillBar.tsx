@@ -12,7 +12,7 @@ const SkillBar: React.FC<SkillBarProps> = ({ skill, index }) => {
   const { theme } = useTheme();
   
   // Calculate width as percentage
-  const widthPercentage = skill.level * 20; // Level is 1-5, convert to percentage
+  const widthPercentage = skill.level; // Proficiency Level is 1-100, use directly as percentage
   
   return (
     <motion.div
@@ -28,7 +28,7 @@ const SkillBar: React.FC<SkillBarProps> = ({ skill, index }) => {
         <span className={`text-xs ${
           theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
         }`}>
-          {skill.level}/5
+          {skill.level}/100
         </span>
       </div>
       
@@ -40,7 +40,7 @@ const SkillBar: React.FC<SkillBarProps> = ({ skill, index }) => {
           animate={{ width: `${widthPercentage}%` }}
           transition={{ duration: 0.8, delay: 0.3 + (index * 0.05) }}
           className={`h-full rounded-full ${
-            skill.level >= 4 ? 'bg-blue-600' : skill.level >= 3 ? 'bg-blue-500' : 'bg-blue-400'
+            skill.level >= 80 ? 'bg-blue-600' : skill.level >= 60 ? 'bg-blue-500' : 'bg-blue-400'
           }`}
         />
       </div>

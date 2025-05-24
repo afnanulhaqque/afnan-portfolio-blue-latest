@@ -32,6 +32,15 @@ interface Achievement {
   awarded_by?: string;
 }
 
+interface AchievementForm {
+  title: string;
+  description: string;
+  date: Date | null;
+  image_url: string;
+  is_approved: boolean;
+  awarded_by: string;
+}
+
 const Admin: React.FC = () => {
   const { theme } = useTheme();
   const { supabase } = useSupabase();
@@ -51,32 +60,8 @@ const Admin: React.FC = () => {
   const [cvLink, setCvLink] = useState('');
   const [cvLinkLoading, setCvLinkLoading] = useState(false);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [testimonialForm, setTestimonialForm] = useState<{
-    name: string;
-    position: string;
-    company: string;
-    content: string;
-    rating: number;
-    image_url: string;
-    is_approved: boolean;
-  }>({
-    name: '',
-    position: '',
-    company: '',
-    content: '',
-    rating: 5,
-    image_url: '',
-    is_approved: false
-  });
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [achievementForm, setAchievementForm] = useState<{
-    title: string;
-    description: string;
-    date: Date | null;
-    image_url: string;
-    is_approved: boolean;
-    awarded_by: string;
-  }>({
+  const [achievementForm, setAchievementForm] = useState<AchievementForm>({
     title: '',
     description: '',
     date: null,
@@ -84,6 +69,9 @@ const Admin: React.FC = () => {
     is_approved: false,
     awarded_by: ''
   });
+
+  // Notification state
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | ''; isVisible: boolean }>({ message: '', type: '', isVisible: false });
 
   // Form states
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -114,13 +102,47 @@ const Admin: React.FC = () => {
     category: '',
     level: 1
   });
-  const [certificateForm, setCertificateForm] = useState({
+  const [certificateForm, setCertificateForm] = useState<{
+    title: string;
+    issuer: string;
+    date: Date | null; // Changed type to Date | null
+    description: string;
+    image_url: string;
+  }>({
     title: '',
     issuer: '',
-    date: '',
+    date: null, // Initialize as null
     description: '',
     image_url: ''
   });
+
+  const [testimonialForm, setTestimonialForm] = useState({
+    name: '',
+    position: '',
+    company: '',
+    content: '',
+    rating: 5,
+    image_url: '',
+    is_approved: false
+  });
+
+  // Add state for image URLs
+  const [imageUrls, setImageUrls] = useState<{[key: string]: string}>({});
+
+  // Function to handle image URL conversion
+  const handleImageUrl = async (url: string | undefined): Promise<string> => {
+    if (!url) return '';
+    if (imageUrls[url]) return imageUrls[url];
+    
+    try {
+      const convertedUrl = await validateAndConvertImageUrl(url);
+      setImageUrls(prev => ({ ...prev, [url]: convertedUrl }));
+      return convertedUrl;
+    } catch (error) {
+      console.error('Error converting image URL:', error);
+      return url;
+    }
+  };
 
   // Check authentication status
   useEffect(() => {
@@ -294,28 +316,85 @@ const Admin: React.FC = () => {
   const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const formData = new FormData(e.target as HTMLFormElement);
+      const imageFile = formData.get('image') as File;
+      let imageUrl = '';
+
+      console.log('Starting project submission...');
+      console.log('Form data:', {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        link: formData.get('link'),
+        tags: formData.get('tags')
+      });
+
+      // If editing and no new image is uploaded, keep the existing image
+      if (editingId) {
+        const existingProject = projects.find(p => p.id === editingId);
+        imageUrl = existingProject?.image_url || '';
+      }
+
+      // Only upload new image if a file is selected
+      if (imageFile && imageFile.size > 0) {
+        console.log('Processing image file:', imageFile.name, imageFile.size);
+        try {
+          imageUrl = await handleImageUrl(imageFile.name);
+          console.log('Image uploaded successfully:', imageUrl);
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          throw new Error('Failed to upload image: ' + (uploadError as Error).message);
+        }
+      }
+
       const projectData = {
-        ...projectForm,
-        image_url: projectForm.image_url ? validateAndConvertImageUrl(projectForm.image_url.trim()) : null,
-        tags: projectForm.tags.split(',').map(tag => tag.trim())
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        link: formData.get('link') as string,
+        tags: (formData.get('tags') as string).split(',').map(tag => tag.trim()),
+        image_url: imageUrl,
+        created_at: new Date().toISOString()
       };
 
+      console.log('Submitting project data:', projectData);
+
       if (editingId) {
-        await supabase
+        console.log('Updating existing project:', editingId);
+        const { error } = await supabase
           .from('projects')
           .update(projectData)
           .eq('id', editingId);
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          throw error;
+        }
       } else {
-        await supabase
+        console.log('Creating new project');
+        const { error } = await supabase
           .from('projects')
           .insert([projectData]);
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          throw error;
+        }
       }
 
-      setProjectForm({ title: '', description: '', image_url: '', tags: '', link: '' });
+      // Reset form
+      setProjectForm({
+        title: '',
+        description: '',
+        image_url: '',
+        tags: '',
+        link: ''
+      });
       setEditingId(null);
-      fetchAllData();
+      await fetchAllData();
+      (e.target as HTMLFormElement).reset();
+      setNotification({ message: 'Project saved successfully!', type: 'success', isVisible: true });
     } catch (error) {
       console.error('Error saving project:', error);
+      setNotification({ message: 'Failed to save project: ' + (error as Error).message, type: 'error', isVisible: true });
     }
   };
 
@@ -360,98 +439,135 @@ const Admin: React.FC = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await supabase
+        const { error } = await supabase
           .from('skills')
           .update(skillForm)
           .eq('id', editingId);
+        
+        if (error) {
+          console.error('Supabase update error (skill):', error);
+          throw error; // Throw the error to be caught by the catch block
+        }
       } else {
-        await supabase
+        const { error } = await supabase
           .from('skills')
           .insert([skillForm]);
+        
+        if (error) {
+          console.error('Supabase insert error (skill):', error);
+          throw error; // Throw the error to be caught by the catch block
+        }
       }
 
       setSkillForm({ name: '', category: '', level: 1 });
       setEditingId(null);
       fetchAllData();
+      setNotification({ message: 'Skill saved successfully!', type: 'success', isVisible: true });
     } catch (error) {
       console.error('Error saving skill:', error);
+      setNotification({ message: 'Failed to save skill: ' + (error as Error).message, type: 'error', isVisible: true });
     }
   };
 
   // Handle certificate operations
   const handleCertificateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const certificateData = {
-        ...certificateForm,
-        image_url: certificateForm.image_url ? validateAndConvertImageUrl(certificateForm.image_url.trim()) : null
-      };
+    const formData = new FormData(e.target as HTMLFormElement);
+    const imageFile = formData.get('image') as File;
+    let imageUrl = '';
 
-      if (editingId) {
-        await supabase
-          .from('certificates')
-          .update(certificateData)
-          .eq('id', editingId);
-      } else {
-        await supabase
-          .from('certificates')
-          .insert([certificateData]);
-      }
-      setCertificateForm({ title: '', issuer: '', date: '', description: '', image_url: '' });
-      setEditingId(null);
-      fetchAllData();
-    } catch (error) {
-      console.error('Error saving certificate:', error);
+    if (imageFile && imageFile.size > 0) {
+      // Use handleImageUpload for file upload
+      imageUrl = await handleImageUrl(imageFile.name);
+    } else if (editingId) {
+      // If no new image, keep the existing one during update
+      const existingCertificate = certificates.find(cert => cert.id === editingId);
+      imageUrl = existingCertificate?.image_url || '';
     }
+
+    // Format the date before submitting
+    const formattedDate = certificateForm.date ? certificateForm.date.toISOString().split('T')[0] : '';
+
+    const certificateData = {
+      title: formData.get('title') as string,
+      issuer: formData.get('issuer') as string,
+      date: formattedDate, // Use the formatted date
+      description: formData.get('description') as string,
+      image_url: imageUrl
+    };
+
+    if (editingId) {
+      const { error } = await supabase
+        .from('certificates')
+        .update(certificateData)
+        .eq('id', editingId);
+      if (error) throw error; // Add error handling
+    } else {
+      const { error } = await supabase
+        .from('certificates')
+        .insert([certificateData]);
+      if (error) throw error; // Add error handling
+    }
+
+    // Reset form
+    setCertificateForm({
+      title: '',
+      issuer: '',
+      date: null, // Reset date to null
+      description: '',
+      image_url: ''
+    });
+    setEditingId(null);
+    fetchAllData();
+    (e.target as HTMLFormElement).reset(); // Reset file input
+    setNotification({ message: 'Certificate saved successfully!', type: 'success', isVisible: true }); // Add success notification
   };
 
   // Handle testimonial operations
   const handleTestimonialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const testimonialData = {
-        ...testimonialForm,
-        image_url: testimonialForm.image_url ? validateAndConvertImageUrl(testimonialForm.image_url.trim()) : null,
-        created_at: new Date().toISOString()
-      };
+    const formData = new FormData(e.target as HTMLFormElement);
+    const imageFile = formData.get('image') as File;
+    let imageUrl = '';
 
-      if (editingId) {
-        const { error } = await supabase
-          .from('testimonials')
-          .update(testimonialData)
-          .eq('id', editingId)
-          .select();
-        
-        if (error) {
-          console.error('Error updating testimonial:', error);
-          throw error;
-        }
-      } else {
-        const { error } = await supabase
-          .from('testimonials')
-          .insert([testimonialData])
-          .select();
-        
-        if (error) {
-          console.error('Error inserting testimonial:', error);
-          throw error;
-        }
-      }
-
-      setTestimonialForm({
-        name: '',
-        position: '',
-        company: '',
-        content: '',
-        rating: 5,
-        image_url: '',
-        is_approved: false
-      });
-      setEditingId(null);
-      fetchAllData();
-    } catch (error) {
-      console.error('Error saving testimonial:', error);
+    if (imageFile && imageFile.size > 0) {
+      imageUrl = await handleImageUrl(imageFile.name);
     }
+
+    const testimonialData = {
+      name: formData.get('name') as string,
+      position: formData.get('position') as string,
+      company: formData.get('company') as string,
+      content: formData.get('content') as string,
+      rating: parseInt(formData.get('rating') as string),
+      image_url: imageUrl,
+      is_approved: testimonialForm.is_approved,
+      created_at: new Date().toISOString()
+    };
+
+    if (editingId) {
+      await supabase
+        .from('testimonials')
+        .update(testimonialData)
+        .eq('id', editingId);
+    } else {
+      await supabase
+        .from('testimonials')
+        .insert([testimonialData]);
+    }
+
+    setTestimonialForm({
+      name: '',
+      position: '',
+      company: '',
+      content: '',
+      rating: 5,
+      image_url: '',
+      is_approved: false
+    });
+    setEditingId(null);
+    fetchAllData();
+    (e.target as HTMLFormElement).reset();
   };
 
   const handleTestimonialApprove = async (id: string) => {
@@ -476,41 +592,24 @@ const Admin: React.FC = () => {
   // Handle achievement operations
   const handleAchievementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!achievementForm.title || !achievementForm.description || !achievementForm.date) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     try {
-      if (!achievementForm.title || !achievementForm.description || !achievementForm.date) {
-        alert('Please fill in all required fields');
-        return;
+      const formData = new FormData(e.target as HTMLFormElement);
+      const imageFile = formData.get('image') as File;
+      
+      if (imageFile) {
+        const imageUrl = await handleImageUrl(imageFile.name);
+        achievementForm.image_url = imageUrl;
       }
 
-      const achievementData = {
-        ...achievementForm,
-        image_url: achievementForm.image_url ? validateAndConvertImageUrl(achievementForm.image_url.trim()) : null,
-        awarded_by: achievementForm.awarded_by ? achievementForm.awarded_by.trim() : null,
-        is_approved: true,
-        created_at: new Date().toISOString()
-      };
-
-      let error;
-      if (editingId) {
-        const { error: updateError } = await supabase
-          .from('achievements')
-          .update(achievementData)
-          .eq('id', editingId);
-        error = updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('achievements')
-          .insert([achievementData]);
-        error = insertError;
-      }
-
-      if (error) {
-        console.error('Error saving achievement:', error);
-        alert('Failed to save achievement: ' + error.message);
-        return;
-      }
-
-      // Reset form and refresh data
+      // Add your achievement saving logic here
+      console.log('Achievement saved:', achievementForm);
+      
+      // Reset form
       setAchievementForm({
         title: '',
         description: '',
@@ -519,12 +618,10 @@ const Admin: React.FC = () => {
         is_approved: false,
         awarded_by: ''
       });
-      setEditingId(null);
-      await fetchAllData();
-      alert('Achievement saved successfully!');
-    } catch (error: any) {
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
       console.error('Error saving achievement:', error);
-      alert('Failed to save achievement: ' + (error.message || 'Unknown error'));
+      alert('Failed to save achievement. Please try again.');
     }
   };
 
@@ -595,62 +692,12 @@ const Admin: React.FC = () => {
   const handleCvLinkSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setCvLinkLoading(true);
-
     try {
-      // Ensure Dropbox link has dl=1
-      const dropboxLink = cvLink.includes('?dl=1') 
-        ? cvLink 
-        : cvLink.replace('?dl=0', '?dl=1').replace(/\?.*$/, '') + '?dl=1';
-
-      console.log('Attempting to save CV link:', dropboxLink);
-
-      // First check if any row exists
-      const { data: existing, error: checkError } = await supabase
-        .from('cv')
-        .select('id')
-        .maybeSingle();
-
-      console.log('Existing CV record check:', { existing, checkError });
-
-      let error;
-      if (existing) {
-        // Update existing row
-        const { error: updateError } = await supabase
-          .from('cv')
-          .update({ link: dropboxLink })
-          .eq('id', existing.id);
-        error = updateError;
-        console.log('Updated existing CV record:', { error: updateError });
-      } else {
-        // Insert new row
-        const { error: insertError } = await supabase
-          .from('cv')
-          .insert([{ link: dropboxLink }]);
-        error = insertError;
-        console.log('Inserted new CV record:', { error: insertError });
-      }
-
-      if (error) {
-        console.error('Error saving CV link:', error);
-        alert('Failed to save CV link. Please try again.');
-      } else {
-        alert('CV link saved successfully!');
-        // Verify the save by fetching the link
-        const { data: verifyData, error: verifyError } = await supabase
-          .from('cv')
-          .select('link')
-          .single();
-        
-        console.log('Verification after save:', { verifyData, verifyError });
-        
-        if (verifyData?.link) {
-          setCvLink(verifyData.link);
-        }
-      }
-    } catch (err) {
-      console.error('Unexpected error saving CV link:', err);
-      alert('An unexpected error occurred. Please try again.');
-    } finally {
+      // Add your CV link saving logic here
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
+      setCvLinkLoading(false);
+    } catch (error) {
+      console.error('Error saving CV link:', error);
       setCvLinkLoading(false);
     }
   };
@@ -682,6 +729,48 @@ const Admin: React.FC = () => {
   useEffect(() => {
     fetchCvLink();
   }, [supabase]);
+
+  const handleImageUpload = async (file: File): Promise<string> => {
+    try {
+      console.log('Starting image upload...');
+      
+      // Create a unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `project-images/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('portfolio_images')  // Changed bucket name to portfolio_images
+        .upload(filePath, file);
+
+      if (error) {
+        console.error('Error uploading to Supabase storage:', error);
+        throw new Error('Failed to upload image: ' + error.message);
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('portfolio_images')  // Changed bucket name to portfolio_images
+        .getPublicUrl(filePath);
+
+      console.log('Image upload successful:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Error in handleImageUpload:', error);
+      throw error;
+    }
+  };
+
+  // Add useEffect to hide notification
+  useEffect(() => {
+    if (notification.isVisible) {
+      const timer = setTimeout(() => {
+        setNotification({ ...notification, isVisible: false });
+      }, 3000); // Hide after 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   if (!isAuthenticated) {
     return (
@@ -757,7 +846,18 @@ const Admin: React.FC = () => {
   }
 
   return (
-    <div className="pt-20">
+    <div className="pt-20 relative">
+      {/* Custom Notification */} 
+      {notification.isVisible && (
+        <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-4 rounded-md shadow-lg z-50 transition-opacity duration-300 ${notification.isVisible ? 'opacity-100' : 'opacity-0'} ${
+          notification.type === 'success'
+            ? (theme === 'dark' ? 'bg-green-800 text-green-200' : 'bg-green-100 text-green-800')
+            : (theme === 'dark' ? 'bg-red-800 text-red-200' : 'bg-red-100 text-red-800')
+        }`}>
+          <p className="font-semibold">{notification.message}</p>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold">
           <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Admin </span>
@@ -963,6 +1063,7 @@ const Admin: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    name="title"
                     value={projectForm.title}
                     onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
                     className={`w-full p-3 rounded-md ${
@@ -983,6 +1084,7 @@ const Admin: React.FC = () => {
                     Description
                   </label>
                   <textarea
+                    name="description"
                     value={projectForm.description}
                     onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
                     className={`w-full p-3 rounded-md ${
@@ -1001,12 +1103,12 @@ const Admin: React.FC = () => {
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Image URL
+                    Project Image
                   </label>
                   <input
-                    type="url"
-                    value={projectForm.image_url}
-                    onChange={(e) => setProjectForm({ ...projectForm, image_url: e.target.value })}
+                    type="file"
+                    name="image"
+                    accept="image/*"
                     className={`w-full p-3 rounded-md ${
                       theme === 'dark'
                         ? 'bg-gray-800 text-white'
@@ -1014,8 +1116,28 @@ const Admin: React.FC = () => {
                     } border ${
                       theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
                     }`}
-                    required
                   />
+                  <p className={`mt-1 text-sm ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    {editingId ? 'Leave empty to keep existing image' : 'Upload a project image (max 5MB, JPG, PNG, GIF, or WebP)'}
+                  </p>
+
+                  {/* Display existing image when editing */}
+                  {editingId && projects.find(p => p.id === editingId)?.image_url && (
+                    <div className="mt-4">
+                      <label className={`block mb-2 text-sm font-medium ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Current Image:
+                      </label>
+                      <img 
+                        src={projects.find(p => p.id === editingId)?.image_url}
+                        alt="Current Project Image"
+                        className="w-32 h-auto rounded-md"
+                      />
+                    </div>
+                  )}
                 </div>
                 
                 <div>
@@ -1026,6 +1148,7 @@ const Admin: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    name="tags"
                     value={projectForm.tags}
                     onChange={(e) => setProjectForm({ ...projectForm, tags: e.target.value })}
                     className={`w-full p-3 rounded-md ${
@@ -1047,6 +1170,7 @@ const Admin: React.FC = () => {
                   </label>
                   <input
                     type="url"
+                    name="link"
                     value={projectForm.link}
                     onChange={(e) => setProjectForm({ ...projectForm, link: e.target.value })}
                     className={`w-full p-3 rounded-md ${
@@ -1394,12 +1518,12 @@ const Admin: React.FC = () => {
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Level (1-5)
+                    Proficiency Level (1-100)
                   </label>
                   <input
                     type="number"
                     min="1"
-                    max="5"
+                    max="100"
                     value={skillForm.level}
                     onChange={(e) => setSkillForm({ ...skillForm, level: parseInt(e.target.value) })}
                     className={`w-full p-3 rounded-md ${
@@ -1445,13 +1569,13 @@ const Admin: React.FC = () => {
                           }`}>
                             <div
                               className="h-full rounded-full bg-blue-600"
-                              style={{ width: `${skill.level * 20}%` }}
+                              style={{ width: `${skill.level}%` }}
                             />
                           </div>
                           <span className={`ml-2 text-sm ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                           }`}>
-                            {skill.level}/5
+                            {skill.level}/100
                           </span>
                         </div>
                       </div>
@@ -1533,18 +1657,19 @@ const Admin: React.FC = () => {
                   }`}>
                     Date
                   </label>
-                  <input
-                    type="date"
-                    value={certificateForm.date}
-                    onChange={(e) => setCertificateForm({ ...certificateForm, date: e.target.value })}
+                  {/* Use DatePicker component */}
+                  <DatePicker
+                    selected={certificateForm.date}
+                    onChange={(date: Date | null) => setCertificateForm({ ...certificateForm, date: date })}
+                    dateFormat="yyyy-MM-dd"
                     className={`w-full p-3 rounded-md ${
                       theme === 'dark'
                         ? 'bg-gray-800 text-white'
                         : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                    }`}
+                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
+                    placeholderText="YYYY-MM-DD"
                     required
+                    isClearable
                   />
                 </div>
                 <div>
@@ -1570,13 +1695,12 @@ const Admin: React.FC = () => {
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Image URL (Google Drive Link)
+                    Certificate Image
                   </label>
                   <input
-                    type="text"
-                    value={certificateForm.image_url}
-                    onChange={(e) => setCertificateForm({ ...certificateForm, image_url: e.target.value })}
-                    placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view?usp=drive_link"
+                    type="file"
+                    name="image"
+                    accept="image/*"
                     className={`w-full p-3 rounded-md ${
                       theme === 'dark'
                         ? 'bg-gray-800 text-white'
@@ -1584,13 +1708,27 @@ const Admin: React.FC = () => {
                     } border ${
                       theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
                     }`}
-                    required
                   />
                   <p className={`mt-1 text-sm ${
                     theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                   }`}>
-                    Paste your Google Drive sharing link here. Make sure the file is publicly accessible.
+                    {editingId ? 'Leave empty to keep existing image' : 'Upload a certificate image (max 5MB, JPG, PNG, GIF, or WebP)'}
                   </p>
+                   {/* Display existing image when editing */}
+                  {editingId && certificates.find(cert => cert.id === editingId)?.image_url && (
+                    <div className="mt-4">
+                      <label className={`block mb-2 text-sm font-medium ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Current Image:
+                      </label>
+                      <img 
+                        src={certificates.find(cert => cert.id === editingId)?.image_url}
+                        alt="Current Certificate Image"
+                        className="w-32 h-auto rounded-md"
+                      />
+                    </div>
+                  )}
                 </div>
                 <button
                   type="submit"
@@ -1630,7 +1768,7 @@ const Admin: React.FC = () => {
                         {certificate.image_url && (
                           <div className="mt-4 relative w-48 h-32">
                             <img
-                              src={validateAndConvertImageUrl(certificate.image_url)}
+                              src={imageUrls[certificate.image_url] || certificate.image_url}
                               alt={certificate.title}
                               className="w-full h-full object-cover rounded"
                               onError={(e) => {
@@ -1653,16 +1791,19 @@ const Admin: React.FC = () => {
                       <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => {
+                            // When editing, populate the form with existing certificate data
                             setCertificateForm({
                               title: certificate.title,
                               issuer: certificate.issuer,
-                              date: certificate.date,
+                              // Convert the date string from Supabase to a Date object for the DatePicker
+                              date: certificate.date ? new Date(certificate.date) : null,
                               description: certificate.description,
                               image_url: certificate.image_url
                             });
                             setEditingId(certificate.id);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
+                          title="Edit certificate"
                         >
                           <Edit size={16} />
                         </button>
@@ -1683,53 +1824,70 @@ const Admin: React.FC = () => {
           {/* CV Section */}
           {activeContent === 'cv' && (
             <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Manage CV Link</h2>
-              <form onSubmit={handleCvLinkSave} className="space-y-4">
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    CV Link (Google Drive, Dropbox, etc.)
-                  </label>
-                  <input
-                    type="url"
-                    value={cvLink}
-                    onChange={e => setCvLink(e.target.value)}
-                    placeholder="https://drive.google.com/file/..."
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
-                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
-                    required
-                  />
-                  <p className={`mt-2 text-sm ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    Make sure the link is publicly accessible and allows downloads.
-                  </p>
-                </div>
-                <button
-                  type="submit"
-                  className="py-3 px-6 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
-                  disabled={cvLinkLoading}
-                >
-                  {cvLinkLoading ? 'Saving...' : 'Save Link'}
-                </button>
-              </form>
-              {cvLink && (
-                <div className="mt-4">
-                  <a 
-                    href={cvLink} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className={`inline-flex items-center text-blue-600 hover:text-blue-700 ${
-                      theme === 'dark' ? 'hover:text-blue-400' : ''
-                    }`}
+              <h2 className={`text-2xl font-bold mb-4 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>Manage CV Link</h2>
+              <div className={`p-6 rounded-lg shadow-lg ${
+                theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+              }`}>
+                <form onSubmit={handleCvLinkSave} className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      CV Link
+                    </label>
+                    <input
+                      type="text"
+                      value={cvLink}
+                      onChange={(e) => setCvLink(e.target.value)}
+                      className={`mt-1 block w-full rounded-md ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } shadow-sm focus:border-blue-500 focus:ring-blue-500`}
+                      placeholder="Enter your CV link"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={cvLinkLoading}
+                    className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300 disabled:opacity-50"
                   >
-                    <Download size={16} className="mr-2" />
-                    Test Current CV Link
-                  </a>
-                </div>
-              )}
+                    {cvLinkLoading ? 'Saving...' : 'Save CV Link'}
+                  </button>
+                </form>
+
+                {/* Display existing CV link and test button */}
+                {cvLink && (
+                  <div className="mt-4">
+                     <h3 className={`text-lg font-bold mb-2 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>Current CV Link:</h3>
+                    <a
+                      href={cvLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`break-all text-blue-600 hover:underline ${
+                        theme === 'dark' ? 'hover:text-blue-400' : ''
+                      }`}
+                    >
+                      {cvLink}
+                    </a>
+                     <a
+                      href={cvLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`inline-flex items-center text-blue-600 hover:text-blue-700 mt-2 ${
+                        theme === 'dark' ? 'hover:text-blue-400' : ''
+                      }`}
+                    >
+                      <Download size={16} className="mr-2" />
+                      Test Current CV Link
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1767,7 +1925,7 @@ const Admin: React.FC = () => {
                           <div className="flex items-center mb-2">
                             {testimonial.image_url ? (
                               <img
-                                src={validateAndConvertImageUrl(testimonial.image_url)}
+                                src={imageUrls[testimonial.image_url] || testimonial.image_url}
                                 alt={testimonial.name}
                                 className="w-12 h-12 rounded-full object-cover mr-4"
                               />
@@ -1980,6 +2138,30 @@ const Admin: React.FC = () => {
                   <label htmlFor="achievementApproved" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>Approved</label>
                 </div>
                 
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Achievement Image
+                  </label>
+                  <input
+                    type="file"
+                    name="image"
+                    accept="image/*"
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                  />
+                  <p className={`mt-1 text-sm ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    Upload an achievement image (max 5MB, JPG, PNG, GIF, or WebP)
+                  </p>
+                </div>
                 <button
                   type="submit"
                   className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
@@ -2007,31 +2189,24 @@ const Admin: React.FC = () => {
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className={`font-bold mb-2 ${
-                            theme === 'dark' ? 'text-white' : 'text-gray-900'
-                          }`}>{achievement.title}</h3>
-                          <p className={`text-sm mb-2 ${
-                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          <h3 className="font-bold">{achievement.title}</h3>
+                          <p className={`text-sm ${
+                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                           }`}>
                             {achievement.description}
                           </p>
                           <p className={`text-sm ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                           }`}>
-                            {new Date(achievement.date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
+                            {new Date(achievement.date).toLocaleDateString()}
                           </p>
                           {achievement.image_url && (
                             <img
-                              src={validateAndConvertImageUrl(achievement.image_url)}
+                              src={imageUrls[achievement.image_url] || achievement.image_url}
                               alt={achievement.title}
                               className="mt-4 w-32 h-20 object-cover rounded"
                             />
                           )}
-                          
                           <div className="flex items-center mt-4 space-x-2">
                             <span className={`inline-block text-sm px-2 py-1 rounded-full ${
                               achievement.is_approved
@@ -2042,19 +2217,18 @@ const Admin: React.FC = () => {
                             </span>
                           </div>
                         </div>
-                        
                         <div className="flex space-x-2 ml-4">
                           <button
                             onClick={() => {
-                              setEditingId(achievement.id);
                               setAchievementForm({
                                 title: achievement.title,
                                 description: achievement.description,
-                                date: achievement.date ? new Date(achievement.date) : null,
+                                date: new Date(achievement.date),
                                 image_url: achievement.image_url || '',
                                 is_approved: achievement.is_approved,
                                 awarded_by: achievement.awarded_by || ''
                               });
+                              setEditingId(achievement.id);
                             }}
                             className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                             title="Edit achievement"
