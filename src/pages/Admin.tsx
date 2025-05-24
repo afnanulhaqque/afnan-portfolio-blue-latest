@@ -6,6 +6,7 @@ import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } 
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { validateAndConvertImageUrl } from '../utils/imageUtils';
+import { compressImage } from '../utils/imageUtils';
 
 type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements';
 
@@ -472,55 +473,74 @@ const Admin: React.FC = () => {
   // Handle certificate operations
   const handleCertificateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const imageFile = formData.get('image') as File;
-    let imageUrl = '';
+    try {
+      const formData = new FormData(e.target as HTMLFormElement);
+      const imageFile = formData.get('image') as File;
+      let imageUrl = '';
 
-    if (imageFile && imageFile.size > 0) {
-      // Use handleImageUpload for file upload
-      imageUrl = await handleImageUrl(imageFile.name);
-    } else if (editingId) {
-      // If no new image, keep the existing one during update
-      const existingCertificate = certificates.find(cert => cert.id === editingId);
-      imageUrl = existingCertificate?.image_url || '';
+      // Get form values, using certificateForm for updates
+      const title = editingId ? certificateForm.title : (formData.get('title') as string);
+      const issuer = editingId ? certificateForm.issuer : (formData.get('issuer') as string);
+      const description = editingId ? certificateForm.description : (formData.get('description') as string);
+      const date = certificateForm.date;
+
+      // Validate required fields
+      if (!title || !issuer || !description || !date) {
+        console.log('Form validation failed:', { title, issuer, description, date });
+        throw new Error('Please fill in all required fields');
+      }
+
+      if (imageFile && imageFile.size > 0) {
+        // Upload the actual file to Supabase storage
+        imageUrl = await handleImageUpload(imageFile);
+      } else if (editingId) {
+        // If no new image, keep the existing one during update
+        const existingCertificate = certificates.find(cert => cert.id === editingId);
+        imageUrl = existingCertificate?.image_url || '';
+      }
+
+      // Format the date before submitting
+      const formattedDate = date.toISOString().split('T')[0];
+
+      const certificateData = {
+        title,
+        issuer,
+        date: formattedDate,
+        description,
+        image_url: imageUrl
+      };
+
+      console.log('Submitting certificate data:', certificateData);
+
+      if (editingId) {
+        const { error } = await supabase
+          .from('certificates')
+          .update(certificateData)
+          .eq('id', editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('certificates')
+          .insert([certificateData]);
+        if (error) throw error;
+      }
+
+      // Reset form
+      setCertificateForm({
+        title: '',
+        issuer: '',
+        date: null,
+        description: '',
+        image_url: ''
+      });
+      setEditingId(null);
+      await fetchAllData();
+      (e.target as HTMLFormElement).reset();
+      setNotification({ message: 'Certificate saved successfully!', type: 'success', isVisible: true });
+    } catch (error) {
+      console.error('Error saving certificate:', error);
+      setNotification({ message: 'Failed to save certificate: ' + (error as Error).message, type: 'error', isVisible: true });
     }
-
-    // Format the date before submitting
-    const formattedDate = certificateForm.date ? certificateForm.date.toISOString().split('T')[0] : '';
-
-    const certificateData = {
-      title: formData.get('title') as string,
-      issuer: formData.get('issuer') as string,
-      date: formattedDate, // Use the formatted date
-      description: formData.get('description') as string,
-      image_url: imageUrl
-    };
-
-    if (editingId) {
-      const { error } = await supabase
-        .from('certificates')
-        .update(certificateData)
-        .eq('id', editingId);
-      if (error) throw error; // Add error handling
-    } else {
-      const { error } = await supabase
-        .from('certificates')
-        .insert([certificateData]);
-      if (error) throw error; // Add error handling
-    }
-
-    // Reset form
-    setCertificateForm({
-      title: '',
-      issuer: '',
-      date: null, // Reset date to null
-      description: '',
-      image_url: ''
-    });
-    setEditingId(null);
-    fetchAllData();
-    (e.target as HTMLFormElement).reset(); // Reset file input
-    setNotification({ message: 'Certificate saved successfully!', type: 'success', isVisible: true }); // Add success notification
   };
 
   // Handle testimonial operations
@@ -592,23 +612,59 @@ const Admin: React.FC = () => {
   // Handle achievement operations
   const handleAchievementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!achievementForm.title || !achievementForm.description || !achievementForm.date) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
     try {
       const formData = new FormData(e.target as HTMLFormElement);
       const imageFile = formData.get('image') as File;
-      
-      if (imageFile) {
-        const imageUrl = await handleImageUrl(imageFile.name);
-        achievementForm.image_url = imageUrl;
+      let imageUrl = '';
+
+      // Get form values, using achievementForm for updates
+      const title = editingId ? achievementForm.title : (formData.get('title') as string);
+      const description = editingId ? achievementForm.description : (formData.get('description') as string);
+      const date = achievementForm.date;
+      const awarded_by = editingId ? achievementForm.awarded_by : (formData.get('awarded_by') as string);
+
+      // Validate required fields
+      if (!title || !description || !date) {
+        console.log('Form validation failed:', { title, description, date });
+        throw new Error('Please fill in all required fields');
       }
 
-      // Add your achievement saving logic here
-      console.log('Achievement saved:', achievementForm);
-      
+      if (imageFile && imageFile.size > 0) {
+        // Upload the actual file to Supabase storage
+        imageUrl = await handleImageUpload(imageFile);
+      } else if (editingId) {
+        // If no new image, keep the existing one during update
+        const existingAchievement = achievements.find(ach => ach.id === editingId);
+        imageUrl = existingAchievement?.image_url || '';
+      }
+
+      // Format the date before submitting
+      const formattedDate = date.toISOString().split('T')[0];
+
+      const achievementData = {
+        title,
+        description,
+        date: formattedDate,
+        image_url: imageUrl,
+        is_approved: achievementForm.is_approved,
+        awarded_by: awarded_by || null
+      };
+
+      console.log('Submitting achievement data:', achievementData);
+
+      if (editingId) {
+        const { error } = await supabase
+          .from('achievements')
+          .update(achievementData)
+          .eq('id', editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('achievements')
+          .insert([achievementData]);
+        if (error) throw error;
+      }
+
       // Reset form
       setAchievementForm({
         title: '',
@@ -618,10 +674,13 @@ const Admin: React.FC = () => {
         is_approved: false,
         awarded_by: ''
       });
+      setEditingId(null);
+      await fetchAllData();
       (e.target as HTMLFormElement).reset();
+      setNotification({ message: 'Achievement saved successfully!', type: 'success', isVisible: true });
     } catch (error) {
       console.error('Error saving achievement:', error);
-      alert('Failed to save achievement. Please try again.');
+      setNotification({ message: 'Failed to save achievement: ' + (error as Error).message, type: 'error', isVisible: true });
     }
   };
 
@@ -644,9 +703,51 @@ const Admin: React.FC = () => {
     }
   };
 
-  // Handle delete operations
+  // Add this new function to delete images from storage
+  const deleteImageFromStorage = async (imageUrl: string) => {
+    try {
+      if (!imageUrl) return;
+
+      // Extract the file path from the URL
+      const urlParts = imageUrl.split('/');
+      const filePath = urlParts.slice(urlParts.indexOf('certificates_achievements') + 1).join('/');
+
+      if (!filePath) {
+        console.error('Could not extract file path from URL:', imageUrl);
+        return;
+      }
+
+      // Delete the file from storage
+      const { error } = await supabase.storage
+        .from('certificates_achievements')
+        .remove([filePath]);
+
+      if (error) {
+        console.error('Error deleting image from storage:', error);
+        throw error;
+      }
+
+      console.log('Successfully deleted image:', filePath);
+    } catch (error) {
+      console.error('Error in deleteImageFromStorage:', error);
+      throw error;
+    }
+  };
+
+  // Update the handleDelete function to also delete associated images
   const handleDelete = async (table: string, id: string) => {
     try {
+      // Get the item before deleting to check for image
+      let imageUrl = '';
+      if (table === 'certificates') {
+        const certificate = certificates.find(cert => cert.id === id);
+        imageUrl = certificate?.image_url || '';
+      } else if (table === 'achievements') {
+        const achievement = achievements.find(ach => ach.id === id);
+        imageUrl = achievement?.image_url || '';
+      }
+
+      // Delete the record from the database
       const { error } = await supabase
         .from(table)
         .delete()
@@ -656,10 +757,60 @@ const Admin: React.FC = () => {
         console.error(`Error deleting from ${table}:`, error);
         throw error;
       }
+
+      // If there was an image, delete it from storage
+      if (imageUrl) {
+        await deleteImageFromStorage(imageUrl);
+      }
       
       fetchAllData();
+      setNotification({ message: 'Item deleted successfully!', type: 'success', isVisible: true });
     } catch (error) {
       console.error(`Error deleting from ${table}:`, error);
+      setNotification({ message: 'Failed to delete item: ' + (error as Error).message, type: 'error', isVisible: true });
+    }
+  };
+
+  // Add a new function to delete just the image
+  const handleDeleteImage = async (table: string, id: string) => {
+    try {
+      let imageUrl = '';
+      let item;
+
+      if (table === 'certificates') {
+        item = certificates.find(cert => cert.id === id);
+      } else if (table === 'achievements') {
+        item = achievements.find(ach => ach.id === id);
+      }
+
+      if (!item) {
+        throw new Error('Item not found');
+      }
+
+      imageUrl = item.image_url || '';
+
+      if (!imageUrl) {
+        throw new Error('No image found to delete');
+      }
+
+      // Delete the image from storage
+      await deleteImageFromStorage(imageUrl);
+
+      // Update the record to remove the image URL
+      const { error } = await supabase
+        .from(table)
+        .update({ image_url: null })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      fetchAllData();
+      setNotification({ message: 'Image deleted successfully!', type: 'success', isVisible: true });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      setNotification({ message: 'Failed to delete image: ' + (error as Error).message, type: 'error', isVisible: true });
     }
   };
 
@@ -734,15 +885,29 @@ const Admin: React.FC = () => {
     try {
       console.log('Starting image upload...');
       
+      // Compress the image before uploading
+      const compressedFile = await compressImage(file);
+      console.log('Image compressed:', {
+        originalSize: file.size,
+        compressedSize: compressedFile.size,
+        compressionRatio: (compressedFile.size / file.size * 100).toFixed(2) + '%'
+      });
+      
       // Create a unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `project-images/${fileName}`;
+      
+      // Determine the folder based on the active content
+      const folder = activeContent === 'certificates' ? 'certificates' : 'achievements';
+      const filePath = `${folder}/${fileName}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('portfolio_images')  // Changed bucket name to portfolio_images
-        .upload(filePath, file);
+        .from('certificates_achievements')
+        .upload(filePath, compressedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (error) {
         console.error('Error uploading to Supabase storage:', error);
@@ -751,7 +916,7 @@ const Admin: React.FC = () => {
 
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('portfolio_images')  // Changed bucket name to portfolio_images
+        .from('certificates_achievements')
         .getPublicUrl(filePath);
 
       console.log('Image upload successful:', publicUrl);
@@ -1722,11 +1887,26 @@ const Admin: React.FC = () => {
                       }`}>
                         Current Image:
                       </label>
-                      <img 
-                        src={certificates.find(cert => cert.id === editingId)?.image_url}
-                        alt="Current Certificate Image"
-                        className="w-32 h-auto rounded-md"
-                      />
+                      <div className="mt-4 relative w-full max-w-[800px] h-[600px] bg-white rounded-lg overflow-hidden">
+                        <img
+                          src={imageUrls[certificates.find(cert => cert.id === editingId)?.image_url] || certificates.find(cert => cert.id === editingId)?.image_url}
+                          alt={certificates.find(cert => cert.id === editingId)?.title}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = `
+                              <div class="w-full h-full flex items-center justify-center ${
+                                theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                              } rounded">
+                                <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            `;
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1766,11 +1946,11 @@ const Admin: React.FC = () => {
                           {certificate.description}
                         </p>
                         {certificate.image_url && (
-                          <div className="mt-4 relative w-48 h-32">
+                          <div className="mt-4 relative w-full max-w-[800px] h-[600px] bg-white rounded-lg overflow-hidden">
                             <img
                               src={imageUrls[certificate.image_url] || certificate.image_url}
                               alt={certificate.title}
-                              className="w-full h-full object-cover rounded"
+                              className="w-full h-full object-contain"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
@@ -1813,6 +1993,15 @@ const Admin: React.FC = () => {
                         >
                           <Trash2 size={16} />
                         </button>
+                        {editingId === certificate.id ? (
+                          <button
+                            onClick={() => handleDeleteImage('certificates', certificate.id)}
+                            className="p-2 text-orange-600 hover:bg-orange-600/10 rounded-full"
+                            title="Delete image"
+                          >
+                            <X size={16} />
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </motion.div>
@@ -2201,11 +2390,26 @@ const Admin: React.FC = () => {
                             {new Date(achievement.date).toLocaleDateString()}
                           </p>
                           {achievement.image_url && (
-                            <img
-                              src={imageUrls[achievement.image_url] || achievement.image_url}
-                              alt={achievement.title}
-                              className="mt-4 w-32 h-20 object-cover rounded"
-                            />
+                            <div className="mt-4 relative w-full max-w-[800px] h-[600px] bg-white rounded-lg overflow-hidden">
+                              <img
+                                src={achievement.image_url ? (imageUrls[achievement.image_url as string] || achievement.image_url) : ''}
+                                alt={achievement.title}
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.parentElement!.innerHTML = `
+                                    <div class="w-full h-full flex items-center justify-center ${
+                                      theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                                    } rounded">
+                                      <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
+                                  `;
+                                }}
+                              />
+                            </div>
                           )}
                           <div className="flex items-center mt-4 space-x-2">
                             <span className={`inline-block text-sm px-2 py-1 rounded-full ${
@@ -2251,6 +2455,15 @@ const Admin: React.FC = () => {
                           >
                             <Trash2 size={16} />
                           </button>
+                          {editingId === achievement.id ? (
+                            <button
+                              onClick={() => handleDeleteImage('achievements', achievement.id)}
+                              className="p-2 text-orange-600 hover:bg-orange-600/10 rounded-full"
+                              title="Delete image"
+                            >
+                              <X size={16} />
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     </motion.div>

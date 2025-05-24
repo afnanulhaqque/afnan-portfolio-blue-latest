@@ -153,31 +153,53 @@ export const compressImage = async (file: File): Promise<File> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
         let width = img.width;
         let height = img.height;
 
-        if (width > height) {
+        // Set maximum dimensions for the frame
+        const MAX_WIDTH = 800;  // Reduced from 1200 to 800
+        const MAX_HEIGHT = 600; // Reduced from 1200 to 600
+        
+        // Calculate aspect ratios
+        const imgAspectRatio = width / height;
+        const frameAspectRatio = MAX_WIDTH / MAX_HEIGHT;
+
+        // Calculate new dimensions while maintaining aspect ratio
+        if (imgAspectRatio > frameAspectRatio) {
+          // Image is wider than frame
           if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
+            height = Math.round(MAX_WIDTH / imgAspectRatio);
             width = MAX_WIDTH;
           }
         } else {
+          // Image is taller than frame
           if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
+            width = Math.round(MAX_HEIGHT * imgAspectRatio);
             height = MAX_HEIGHT;
           }
         }
 
+        // Set canvas dimensions
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
 
+        // Create a white background
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, width, height);
+          
+          // Draw the image centered
+          const x = (width - width) / 2;
+          const y = (height - height) / 2;
+          ctx.drawImage(img, x, y, width, height);
+        }
+
+        // Convert to blob with quality 0.8 (80%)
         canvas.toBlob(
           (blob) => {
             if (blob) {
+              // Create a new file with the compressed blob
               const compressedFile = new File([blob], file.name, {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
@@ -191,9 +213,13 @@ export const compressImage = async (file: File): Promise<File> => {
           0.8
         );
       };
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+      };
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
   });
 };
 
