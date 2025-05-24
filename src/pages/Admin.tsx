@@ -496,7 +496,7 @@ const Admin: React.FC = () => {
 
       if (imageFile && imageFile.size > 0) {
         // Upload the actual file to Supabase storage
-        imageUrl = await handleImageUpload(imageFile);
+        imageUrl = await handleImageUrl(imageFile.name);
       } else if (editingId) {
         // If no new image, keep the existing one during update
         const existingCertificate = certificates.find(cert => cert.id === editingId);
@@ -617,55 +617,35 @@ const Admin: React.FC = () => {
   const handleAchievementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const formData = new FormData(e.target as HTMLFormElement);
-      const imageFile = formData.get('image') as File;
-      let imageUrl = '';
-
-      // Get form values, using achievementForm for updates
-      const title = editingId ? achievementForm.title : (formData.get('title') as string);
-      const description = editingId ? achievementForm.description : (formData.get('description') as string);
-      const date = achievementForm.date;
-      const awarded_by = editingId ? achievementForm.awarded_by : (formData.get('awarded_by') as string);
-
-      // Validate required fields
-      if (!title || !description || !date) {
-        console.log('Form validation failed:', { title, description, date });
-        throw new Error('Please fill in all required fields');
-      }
-
-      if (imageFile && imageFile.size > 0) {
-        // Upload the actual file to Supabase storage
-        imageUrl = await handleImageUpload(imageFile);
-      } else if (editingId) {
-        // If no new image, keep the existing one during update
-        const existingAchievement = achievements.find(ach => ach.id === editingId);
-        imageUrl = existingAchievement?.image_url || '';
-      }
-
-      // Format the date before submitting
-      const formattedDate = date.toISOString().split('T')[0];
-
-      const achievementData = {
-        title,
-        description,
-        date: formattedDate,
-        image_url: imageUrl,
+      // Use state for data submission
+      const dataToSubmit = {
+        title: achievementForm.title,
+        description: achievementForm.description,
+        date: achievementForm.date ? achievementForm.date.toISOString().split('T')[0] : null, // Format date
+        image_url: achievementForm.image_url, // Keep image_url from state (though the input is removed)
         is_approved: achievementForm.is_approved,
-        awarded_by: awarded_by || null
+        awarded_by: achievementForm.awarded_by || null,
       };
 
-      console.log('Submitting achievement data:', achievementData);
+      // Validate required fields using state
+      if (!dataToSubmit.title || !dataToSubmit.description || !(achievementForm.date instanceof Date)) {
+        console.log('Form validation failed:', { title: dataToSubmit.title, description: dataToSubmit.description, date: achievementForm.date });
+        setNotification({ message: 'Please fill in all required fields (Title, Description, Date).', type: 'error', isVisible: true });
+        return; // Stop submission if validation fails
+      }
+
+      console.log('Submitting achievement data:', dataToSubmit);
 
       if (editingId) {
         const { error } = await supabase
           .from('achievements')
-          .update(achievementData)
+          .update(dataToSubmit)
           .eq('id', editingId);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('achievements')
-          .insert([achievementData]);
+          .insert([dataToSubmit]);
         if (error) throw error;
       }
 
@@ -674,13 +654,13 @@ const Admin: React.FC = () => {
         title: '',
         description: '',
         date: null,
-        image_url: '',
+        image_url: '', // Keep image_url reset for consistency
         is_approved: false,
         awarded_by: ''
       });
       setEditingId(null);
       await fetchAllData();
-      (e.target as HTMLFormElement).reset();
+      // No need to reset form element with FormData approach removed
       setNotification({ message: 'Achievement saved successfully!', type: 'success', isVisible: true });
     } catch (error) {
       console.error('Error saving achievement:', error);
@@ -1016,9 +996,9 @@ const Admin: React.FC = () => {
 
   return (
     <div className="pt-20 relative">
-      {/* Custom Notification */} 
+      {/* Custom Notification */}
       {notification.isVisible && (
-        <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-4 rounded-md shadow-lg z-50 transition-opacity duration-300 ${notification.isVisible ? 'opacity-100' : 'opacity-0'} ${
+        <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-4 rounded-md shadow-lg z-50 transition-opacity duration-300 ${
           notification.type === 'success'
             ? (theme === 'dark' ? 'bg-green-800 text-green-200' : 'bg-green-100 text-green-800')
             : (theme === 'dark' ? 'bg-red-800 text-red-200' : 'bg-red-100 text-red-800')
@@ -1898,7 +1878,12 @@ const Admin: React.FC = () => {
                           src={certificates.find(cert => cert.id === editingId)?.image_url ? (imageUrls[certificates.find(cert => cert.id === editingId)?.image_url as string] || certificates.find(cert => cert.id === editingId)?.image_url) : ''}
                           alt="Current Certificate Image"
                           className="w-full h-full object-cover cursor-pointer"
-                          onClick={() => setSelectedCertificate(certificates.find(cert => cert.id === editingId))}
+                          onClick={() => {
+                            const certificate = certificates.find(cert => cert.id === editingId);
+                            if (certificate) {
+                              setSelectedCertificate(certificate);
+                            }
+                          }}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
@@ -2278,25 +2263,6 @@ const Admin: React.FC = () => {
                 <div>
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Image URL</label>
-                  <input
-                    type="url"
-                    value={achievementForm.image_url}
-                    onChange={(e) => setAchievementForm({ ...achievementForm, image_url: e.target.value })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                    }`}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>Awarded By</label>
                   <input
                     type="text"
@@ -2473,7 +2439,7 @@ const Admin: React.FC = () => {
         <CertificateDetail
           certificate={selectedCertificate}
           onClose={() => setSelectedCertificate(null)}
-          imageUrl={selectedCertificate.image_url ? (imageUrls[selectedCertificate.image_url as string] || selectedCertificate.image_url) : ''}
+          imageUrl={selectedCertificate.image_url ? (imageUrls[selectedCertificate.image_url] || selectedCertificate.image_url) : ''}
         />
       )}
     </div>
