@@ -251,7 +251,7 @@ const About: React.FC = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="mb-20">
+      <section className="mt-32">
         <h2 className="text-2xl md:text-3xl font-bold mb-8">
           <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Client </span>
           <span className="text-blue-600">Testimonials</span>
