@@ -183,19 +183,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <ExternalLink size={14} />
             <span>Live Demo</span>
           </a>
-          <a 
-            href={`https://github.com/afnanulhaquee/${project.link.split('/').pop()}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex items-center space-x-1 text-sm transition-colors duration-300 ${
-              theme === 'dark' 
-                ? 'text-gray-400 hover:text-white' 
-                : 'text-gray-600 hover:text-black'
-            }`}
-          >
-            <Github size={14} />
-            <span>Source</span>
-          </a>
+          {isEditable && (
+            <a 
+              href={`https://github.com/afnanulhaquee/${project.link.split('/').pop()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center space-x-1 text-sm transition-colors duration-300 ${
+                theme === 'dark' 
+                  ? 'text-gray-400 hover:text-white' 
+                  : 'text-gray-600 hover:text-black'
+              }`}
+            >
+              <Github size={14} />
+              <span>Source</span>
+            </a>
+          )}
         </div>
       </div>
     </motion.div>
