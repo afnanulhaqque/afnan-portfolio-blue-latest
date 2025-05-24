@@ -15,6 +15,7 @@ const Certificates: React.FC = () => {
         const certificatesData = await getCertificates();
         console.log('Fetched certificates data:', certificatesData);
         setCertificates(certificatesData);
+        console.log('Certificates state after setting:', certificatesData);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching certificates:', error);
