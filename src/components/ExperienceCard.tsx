@@ -35,9 +35,11 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ experience, index }) =>
         <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
           experience.type === 'work'
             ? 'bg-blue-600/20 text-blue-500'
-            : 'bg-emerald-600/20 text-emerald-500'
+            : experience.type === 'volunteer'
+              ? 'bg-orange-600/20 text-orange-500'
+              : 'bg-emerald-600/20 text-emerald-500'
         }`}>
-          {experience.type === 'work' ? 'Work Experience' : 'Education'}
+          {experience.type === 'work' ? 'Work Experience' : experience.type === 'volunteer' ? 'Volunteer Work' : 'Education'}
         </span>
       </div>
       

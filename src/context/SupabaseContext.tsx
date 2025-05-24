@@ -18,7 +18,7 @@ export type Experience = {
   start_date: string;
   end_date: string | null;
   description: string;
-  type: 'work' | 'education';
+  type: 'work' | 'education' | 'volunteer';
 };
 
 export type ContactMessage = {
