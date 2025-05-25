@@ -32,12 +32,13 @@ const ContactForm: React.FC = () => {
     try {
       // First save to Supabase
       const { error: dbError } = await supabase
-        .from('contacts')
+        .from('contact_messages')
         .insert([formData]);
 
       if (dbError) throw dbError;
 
       // Then send email
+      console.log('Sending email with data:', formData);
       const response = await fetch('https://vvdrwnmdrvycqpfqynar.supabase.co/functions/v1/resend-email', {
         method: 'POST',
         headers: {
@@ -47,8 +48,11 @@ const ContactForm: React.FC = () => {
         body: JSON.stringify(formData)
       });
 
+      console.log('Email response status:', response.status);
+      const data = await response.json();
+      console.log('Email response data:', data);
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to send email');
       }
 
