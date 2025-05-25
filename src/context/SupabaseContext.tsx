@@ -45,6 +45,7 @@ export type Certificate = {
   description: string;
   image_url: string;
   created_at: string;
+  type: 'event' | 'course';
 };
 
 interface SupabaseContextType {
@@ -135,17 +136,36 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const getCertificates = async (): Promise<Certificate[]> => {
-    const { data, error } = await supabase
-      .from('certificates')
-      .select('*')
-      .order('date', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('certificates')
+        .select('*')
+        .order('date', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching certificates:', error);
-      return [];
+      if (error) {
+        console.error('Error fetching certificates:', error);
+        throw error;
+      }
+
+      console.log('Raw certificates data from Supabase:', data);
+
+      const certificates = data.map(cert => ({
+        id: cert.id,
+        title: cert.title,
+        issuer: cert.issuer,
+        date: new Date(cert.date),
+        description: cert.description,
+        type: cert.type || 'event', // Ensure type is set, default to 'event' if missing
+        image_url: cert.image_url || '',
+        created_at: cert.created_at
+      }));
+
+      console.log('Processed certificates:', certificates);
+      return certificates;
+    } catch (error) {
+      console.error('Error in getCertificates:', error);
+      throw error;
     }
-
-    return data || [];
   };
 
   const submitContactForm = async (name: string, email: string, message: string): Promise<void> => {

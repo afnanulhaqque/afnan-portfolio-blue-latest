@@ -109,11 +109,13 @@ const Admin: React.FC = () => {
     issuer: string;
     date: Date | null;
     description: string;
+    type: 'event' | 'course';
   }>({
     title: '',
     issuer: '',
     date: null,
-    description: ''
+    description: '',
+    type: 'event'
   });
 
   const [testimonialForm, setTestimonialForm] = useState({
@@ -476,19 +478,16 @@ const Admin: React.FC = () => {
   const handleCertificateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const formData = new FormData(e.target as HTMLFormElement);
-      const imageFile = formData.get('image') as File;
-      let imageUrl = '';
-
       // Get form values, using certificateForm for updates and new entries
-      const title = certificateForm.title; // Read from state
-      const issuer = certificateForm.issuer; // Read from state
-      const description = certificateForm.description; // Read from state
-      const date = certificateForm.date; // Already reading from state
+      const title = certificateForm.title;
+      const issuer = certificateForm.issuer;
+      const description = certificateForm.description;
+      const date = certificateForm.date;
+      const type = certificateForm.type;
 
       // Validate required fields
-      if (!title || !issuer || !description || !date) {
-        console.log('Form validation failed:', { title, issuer, description, date });
+      if (!title || !issuer || !description || !date || !type) {
+        console.log('Form validation failed:', { title, issuer, description, date, type });
         throw new Error('Please fill in all required fields');
       }
 
@@ -500,6 +499,7 @@ const Admin: React.FC = () => {
         issuer,
         date: formattedDate,
         description,
+        type
       };
 
       console.log('Submitting certificate data:', certificateData);
@@ -523,6 +523,7 @@ const Admin: React.FC = () => {
         issuer: '',
         date: null,
         description: '',
+        type: 'event'
       });
       setEditingId(null);
       await fetchAllData();
@@ -1829,6 +1830,28 @@ const Admin: React.FC = () => {
                     required
                   />
                 </div>
+                <div>
+                  <label className={`block mb-2 text-sm font-medium ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Type
+                  </label>
+                  <select
+                    value={certificateForm.type}
+                    onChange={(e) => setCertificateForm({ ...certificateForm, type: e.target.value as 'event' | 'course' })}
+                    className={`w-full p-3 rounded-md ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-900'
+                    } border ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
+                    required
+                  >
+                    <option value="event">Event</option>
+                    <option value="course">Course</option>
+                  </select>
+                </div>
                 <button
                   type="submit"
                   className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
@@ -1873,6 +1896,7 @@ const Admin: React.FC = () => {
                               issuer: certificate.issuer,
                               date: certificate.date ? new Date(certificate.date) : null,
                               description: certificate.description,
+                              type: certificate.type
                             });
                             setEditingId(certificate.id);
                           }}

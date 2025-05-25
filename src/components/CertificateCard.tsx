@@ -57,6 +57,16 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
             <h3 className="text-xl font-bold">{certificate.title}</h3>
           </div>
           
+          <div className="flex items-center mb-2">
+            <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
+              certificate.type === 'event'
+                ? 'bg-blue-600/20 text-blue-500'
+                : 'bg-emerald-600/20 text-emerald-500'
+            }`}>
+              {certificate.type === 'event' ? 'Event' : 'Course'}
+            </span>
+          </div>
+          
           <p className={`text-sm mb-2 ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
           }`}>
