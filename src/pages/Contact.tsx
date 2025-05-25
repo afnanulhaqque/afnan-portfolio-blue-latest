@@ -75,7 +75,7 @@ const Contact: React.FC = () => {
                   theme === 'dark' ? 'text-white' : 'text-gray-900'
                 }`}>Phone</h3>
                 <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-                  +923317755477
+                   +92-331-7755477
                 </p>
               </div>
             </div>
