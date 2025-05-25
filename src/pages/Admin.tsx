@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, Edit, Save, X, Loader, Download, Check, Star } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -133,6 +133,19 @@ const Admin: React.FC = () => {
 
   // Add this state near the other state declarations
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
+
+  // Add refs for each form
+  const projectFormRef = useRef<HTMLFormElement>(null);
+  const experienceFormRef = useRef<HTMLFormElement>(null);
+  const skillFormRef = useRef<HTMLFormElement>(null);
+  const certificateFormRef = useRef<HTMLFormElement>(null);
+  const testimonialFormRef = useRef<HTMLFormElement>(null);
+  const achievementFormRef = useRef<HTMLFormElement>(null);
+
+  // Add scroll function
+  const scrollToForm = (formRef: React.RefObject<HTMLFormElement>) => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // Function to handle image URL conversion
   const handleImageUrl = async (url: string | undefined): Promise<string> => {
@@ -1191,7 +1204,7 @@ const Admin: React.FC = () => {
           {/* Projects Section */}
           {activeContent === 'projects' && (
             <div>
-              <form onSubmit={handleProjectSubmit} className="mb-8 space-y-4">
+              <form ref={projectFormRef} onSubmit={handleProjectSubmit} className="mb-8 space-y-4">
                 <div>
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
@@ -1373,6 +1386,7 @@ const Admin: React.FC = () => {
                               link: project.link
                             });
                             setEditingId(project.id);
+                            scrollToForm(projectFormRef);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                         >
@@ -1395,7 +1409,7 @@ const Admin: React.FC = () => {
           {/* Experience Section */}
           {activeContent === 'experiences' && (
             <div>
-              <form onSubmit={handleExperienceSubmit} className="mb-8 space-y-4">
+              <form ref={experienceFormRef} onSubmit={handleExperienceSubmit} className="mb-8 space-y-4">
                 <div>
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
@@ -1588,6 +1602,7 @@ const Admin: React.FC = () => {
                               type: experience.type
                             });
                             setEditingId(experience.id);
+                            scrollToForm(experienceFormRef);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                         >
@@ -1610,7 +1625,7 @@ const Admin: React.FC = () => {
           {/* Skills Section */}
           {activeContent === 'skills' && (
             <div>
-              <form onSubmit={handleSkillSubmit} className="mb-8 space-y-4">
+              <form ref={skillFormRef} onSubmit={handleSkillSubmit} className="mb-8 space-y-4">
                 <div>
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
@@ -1727,6 +1742,7 @@ const Admin: React.FC = () => {
                               level: skill.level
                             });
                             setEditingId(skill.id);
+                            scrollToForm(skillFormRef);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                         >
@@ -1749,7 +1765,7 @@ const Admin: React.FC = () => {
           {/* Certificates Section */}
           {activeContent === 'certificates' && (
             <div>
-              <form onSubmit={handleCertificateSubmit} className="mb-8 space-y-4">
+              <form ref={certificateFormRef} onSubmit={handleCertificateSubmit} className="mb-8 space-y-4">
                 <div>
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
@@ -1899,6 +1915,7 @@ const Admin: React.FC = () => {
                               type: certificate.type
                             });
                             setEditingId(certificate.id);
+                            scrollToForm(certificateFormRef);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                           title="Edit certificate"
@@ -2087,6 +2104,7 @@ const Admin: React.FC = () => {
                                 is_approved: testimonial.is_approved
                               });
                               setEditingId(testimonial.id);
+                              scrollToForm(testimonialFormRef);
                             }}
                             className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                             title="Edit testimonial"
@@ -2130,7 +2148,7 @@ const Admin: React.FC = () => {
                 </p>
               </div>
 
-              <form onSubmit={handleAchievementSubmit} className="mb-8 space-y-4">
+              <form ref={achievementFormRef} onSubmit={handleAchievementSubmit} className="mb-8 space-y-4">
                 <div>
                   <label className={`block mb-2 text-sm font-medium ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
@@ -2273,9 +2291,11 @@ const Admin: React.FC = () => {
                                 description: achievement.description,
                                 date: new Date(achievement.date),
                                 is_approved: achievement.is_approved,
-                                awarded_by: achievement.awarded_by || ''
+                                awarded_by: achievement.awarded_by || '',
+                                image_url: achievement.image_url || ''
                               });
                               setEditingId(achievement.id);
+                              scrollToForm(achievementFormRef);
                             }}
                             className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
                             title="Edit achievement"
