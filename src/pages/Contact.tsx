@@ -57,7 +57,7 @@ const Contact: React.FC = () => {
                 }`}>Email</h3>
                 <a 
                   href="mailto:afnanulhaq4@gmail.com"
-                  className="text-blue-600 hover:underline"
+                  className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} hover:text-blue-600`}
                 >
                   afnanulhaq4@gmail.com
                 </a>
@@ -74,9 +74,12 @@ const Contact: React.FC = () => {
                 <h3 className={`font-medium ${
                   theme === 'dark' ? 'text-white' : 'text-gray-900'
                 }`}>Phone</h3>
-                <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+                <a
+                  href="tel:+923317755477"
+                  className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} hover:text-blue-600`}
+                >
                    +92-331-7755477
-                </p>
+                </a>
               </div>
             </div>
             
@@ -95,11 +98,7 @@ const Contact: React.FC = () => {
                     href="https://www.linkedin.com/in/afnanulhaqque" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${
-                      theme === 'dark' 
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} hover:bg-blue-600 hover:text-white`}
                   >
                     LinkedIn
                   </a>
@@ -107,11 +106,7 @@ const Contact: React.FC = () => {
                     href="https://github.com/afnanulhaquee" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${
-                      theme === 'dark' 
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} hover:bg-blue-600 hover:text-white`}
                   >
                     GitHub
                   </a>
@@ -119,11 +114,7 @@ const Contact: React.FC = () => {
                     href="https://x.com/afnanulhaqque" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${
-                      theme === 'dark' 
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} hover:bg-blue-600 hover:text-white`}
                   >
                     Twitter
                   </a>
@@ -131,11 +122,7 @@ const Contact: React.FC = () => {
                     href="https://www.instagram.com/afnanulhaqque" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${
-                      theme === 'dark' 
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`text-sm px-3 py-1 rounded-full transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} hover:bg-blue-600 hover:text-white`}
                   >
                     Instagram
                   </a>
