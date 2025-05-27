@@ -13,7 +13,6 @@ import Admin from './pages/Admin';
 import Certificates from './pages/Certificates';
 import Achievements from './pages/Achievements';
 import Testimonials from './pages/Testimonials';
-import CertificateDetail from './pages/CertificateDetail';
 import { SupabaseProvider } from './context/SupabaseContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { AuthProvider } from './context/AuthContext';
@@ -33,7 +32,6 @@ function App() {
                     <Route path="/portfolio" element={<Portfolio />} />
                     <Route path="/experience" element={<Experience />} />
                     <Route path="/certificates" element={<Certificates />} />
-                    <Route path="/certificates/:id" element={<CertificateDetail />} />
                     <Route path="/achievements" element={<Achievements />} />
                     <Route path="/testimonials" element={<Testimonials />} />
                     <Route path="/contact" element={<Contact />} />

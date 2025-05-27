@@ -25,17 +25,11 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
   };
 
   // Function to truncate description
-  const truncateDescription = (description: string | undefined, wordLimit: number) => {
+  const truncateDescription = (description: string | undefined) => {
     if (!description) return '';
     const words = description.split(' ');
-    if (words.length > wordLimit) {
-      return words.slice(0, wordLimit).join(' ') + '...';
-    } else {
-      return description;
-    }
+    return description; // Show full description again
   };
-
-  const truncatedDescription = truncateDescription(certificate.description, 5); // Adjusted word limit
 
   return (
     <>
@@ -97,16 +91,9 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
               })}
             </p>
             
-            {truncatedDescription && (
-              <p className={`text-sm ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                {truncatedDescription}
-                {certificate.description && certificate.description.split(' ').length > 20 && (
-                  <span className="text-blue-600 hover:underline ml-1">Read More</span>
-                )}
-              </p>
-            )}
+            <p className={`mt-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              {certificate.description}
+            </p>
           </div>
         </Link>
       </motion.div>
