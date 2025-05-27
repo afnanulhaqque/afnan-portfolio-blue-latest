@@ -2433,109 +2433,146 @@ const Admin: React.FC = () => {
 
           {/* Achievements Section */}
           {activeContent === 'achievements' && (
-            <div>
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">Manage Achievements</h2>
-                <p className={`text-sm ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Add, edit, and delete achievements. Only approved achievements will be displayed on the main page.
-                </p>
-              </div>
+            <div className="space-y-8">
+              <form ref={achievementFormRef} onSubmit={handleAchievementSubmit} className={`p-6 rounded-lg ${
+                theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
+              }`}>
+                <h2 className="text-2xl font-bold mb-4">
+                  {editingId ? 'Edit Achievement' : 'Add New Achievement'}
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Title</label>
+                    <input
+                      type="text"
+                      value={achievementForm.title}
+                      onChange={(e) => setAchievementForm({ ...achievementForm, title: e.target.value })}
+                      className={`w-full p-2 border rounded ${
+                        theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+                      }`}
+                      required
+                    />
+                  </div>
 
-              <form ref={achievementFormRef} onSubmit={handleAchievementSubmit} className="mb-8 space-y-4">
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Title *</label>
-                  <input
-                    type="text"
-                    value={achievementForm.title}
-                    onChange={(e) => setAchievementForm({ ...achievementForm, title: e.target.value })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Awarded By</label>
+                    <input
+                      type="text"
+                      value={achievementForm.awarded_by}
+                      onChange={(e) => setAchievementForm({ ...achievementForm, awarded_by: e.target.value })}
+                      className={`w-full p-2 border rounded ${
+                        theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Date</label>
+                    <DatePicker
+                      selected={achievementForm.date}
+                      onChange={(date) => setAchievementForm({ ...achievementForm, date })}
+                      className={`w-full p-2 border rounded ${
+                        theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+                      }`}
+                      dateFormat="yyyy-MM-dd"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Image</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const imageUrl = await handleImageUpload(file);
+                            setAchievementForm({ ...achievementForm, image_url: imageUrl });
+                          } catch (error) {
+                            console.error('Error uploading image:', error);
+                            setNotification({
+                              message: 'Failed to upload image. Please try again.',
+                              type: 'error',
+                              isVisible: true
+                            });
+                          }
+                        }
+                      }}
+                      className={`w-full p-2 border rounded ${
+                        theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+                      }`}
+                    />
+                    {achievementForm.image_url && (
+                      <div className="mt-2">
+                        <img
+                          src={achievementForm.image_url}
+                          alt="Achievement preview"
+                          className="w-32 h-32 object-cover rounded"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Description</label>
+                    <textarea
+                      value={achievementForm.description}
+                      onChange={(e) => setAchievementForm({ ...achievementForm, description: e.target.value })}
+                      className={`w-full p-2 border rounded ${
+                        theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+                      }`}
+                      rows={4}
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={achievementForm.is_approved}
+                        onChange={(e) => setAchievementForm({ ...achievementForm, is_approved: e.target.checked })}
+                        className={`rounded ${
+                          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+                        }`}
+                      />
+                      <span className="text-sm font-medium">Approve Achievement</span>
+                    </label>
+                  </div>
                 </div>
-                
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Description *</label>
-                  <textarea
-                    value={achievementForm.description}
-                    onChange={(e) => setAchievementForm({ ...achievementForm, description: e.target.value })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-                    }`}
-                    rows={4}
-                    required
-                  />
+
+                <div className="mt-4 flex justify-end space-x-4">
+                  {editingId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(null);
+                        setAchievementForm({
+                          title: '',
+                          description: '',
+                          date: null,
+                          image_url: '',
+                          is_approved: false,
+                          awarded_by: ''
+                        });
+                      }}
+                      className={`px-4 py-2 rounded ${
+                        theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    {editingId ? 'Update Achievement' : 'Add Achievement'}
+                  </button>
                 </div>
-                
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Date *</label>
-                   <DatePicker
-                    selected={achievementForm.date}
-                    onChange={(date: Date | null) => setAchievementForm({ ...achievementForm, date: date })}
-                    dateFormat="yyyy-MM-dd"
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
-                    placeholderText="YYYY-MM-DD"
-                    required
-                    isClearable
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block mb-2 text-sm font-medium ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Awarded By</label>
-                  <input
-                    type="text"
-                    value={achievementForm.awarded_by}
-                    onChange={(e) => setAchievementForm({ ...achievementForm, awarded_by: e.target.value })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
-                  />
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="achievementApproved"
-                    checked={achievementForm.is_approved}
-                    onChange={(e) => setAchievementForm({ ...achievementForm, is_approved: e.target.checked })}
-                    className={`mr-2 ${
-                      theme === 'dark'
-                        ? 'text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-600 focus:ring-offset-gray-800'
-                        : 'text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-600 focus:ring-offset-gray-200'
-                    }`}
-                  />
-                  <label htmlFor="achievementApproved" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>Approved</label>
-                </div>
-                
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
-                >
-                  {editingId ? 'Update Achievement' : 'Add Achievement'}
-                </button>
               </form>
               
               <div className="space-y-4">
