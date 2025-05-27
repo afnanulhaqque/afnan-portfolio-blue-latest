@@ -110,12 +110,14 @@ const Admin: React.FC = () => {
     date: Date | null;
     description: string;
     type: 'event' | 'course';
+    image_url: string;
   }>({
     title: '',
     issuer: '',
     date: null,
     description: '',
-    type: 'event'
+    type: 'event',
+    image_url: ''
   });
 
   const [testimonialForm, setTestimonialForm] = useState({
@@ -490,61 +492,75 @@ const Admin: React.FC = () => {
   // Handle certificate operations
   const handleCertificateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      // Get form values, using certificateForm for updates and new entries
-      const title = certificateForm.title;
-      const issuer = certificateForm.issuer;
-      const description = certificateForm.description;
-      const date = certificateForm.date;
-      const type = certificateForm.type;
+    const formData = new FormData(e.target as HTMLFormElement);
+    const imageFile = formData.get('image') as File;
+    let imageUrl = certificateForm.image_url;
 
-      // Validate required fields
-      if (!title || !issuer || !description || !date || !type) {
-        console.log('Form validation failed:', { title, issuer, description, date, type });
-        throw new Error('Please fill in all required fields');
+    if (imageFile && imageFile.size > 0) {
+      try {
+        // Compress the image before uploading
+        const compressedFile = await compressImage(imageFile);
+        imageUrl = await handleImageUpload(compressedFile);
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        setNotification({
+          message: 'Error uploading image. Please try again.',
+          type: 'error',
+          isVisible: true
+        });
+        return;
       }
+    }
 
-      // Format the date before submitting
-      const formattedDate = date.toISOString().split('T')[0];
+    const certificateData = {
+      title: formData.get('title') as string,
+      issuer: formData.get('issuer') as string,
+      date: certificateForm.date?.toISOString(),
+      description: formData.get('description') as string,
+      type: formData.get('type') as 'event' | 'course',
+      image_url: imageUrl
+    };
 
-      const certificateData = {
-        title,
-        issuer,
-        date: formattedDate,
-        description,
-        type
-      };
-
-      console.log('Submitting certificate data:', certificateData);
-
+    try {
       if (editingId) {
         const { error } = await supabase
           .from('certificates')
           .update(certificateData)
           .eq('id', editingId);
+
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('certificates')
           .insert([certificateData]);
+
         if (error) throw error;
       }
 
-      // Reset form
       setCertificateForm({
         title: '',
         issuer: '',
         date: null,
         description: '',
-        type: 'event'
+        type: 'event',
+        image_url: ''
       });
       setEditingId(null);
-      await fetchAllData();
+      fetchAllData();
       (e.target as HTMLFormElement).reset();
-      setNotification({ message: 'Certificate saved successfully!', type: 'success', isVisible: true });
+      
+      setNotification({
+        message: `Certificate ${editingId ? 'updated' : 'added'} successfully!`,
+        type: 'success',
+        isVisible: true
+      });
     } catch (error) {
       console.error('Error saving certificate:', error);
-      setNotification({ message: 'Failed to save certificate: ' + (error as Error).message, type: 'error', isVisible: true });
+      setNotification({
+        message: 'Error saving certificate. Please try again.',
+        type: 'error',
+        isVisible: true
+      });
     }
   };
 
@@ -1765,102 +1781,98 @@ const Admin: React.FC = () => {
           {/* Certificates Section */}
           {activeContent === 'certificates' && (
             <div>
-              <form ref={certificateFormRef} onSubmit={handleCertificateSubmit} className="mb-8 space-y-4">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-4">Manage Certificates</h2>
+                <p className={`text-sm ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Add and manage your certificates and achievements.
+                </p>
+              </div>
+
+              <form ref={certificateFormRef} onSubmit={handleCertificateSubmit} className="space-y-4">
                 <div>
-                  <label className={`block mb-2 text-sm font-medium ${
+                  <label className={`block text-sm font-medium mb-2 ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Title
+                    Title *
                   </label>
                   <input
                     type="text"
+                    name="title"
                     value={certificateForm.title}
                     onChange={(e) => setCertificateForm({ ...certificateForm, title: e.target.value })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    className={`w-full p-2 border rounded ${
+                      theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                     }`}
                     required
                   />
                 </div>
+
                 <div>
-                  <label className={`block mb-2 text-sm font-medium ${
+                  <label className={`block text-sm font-medium mb-2 ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Issuer
+                    Issuer *
                   </label>
                   <input
                     type="text"
+                    name="issuer"
                     value={certificateForm.issuer}
                     onChange={(e) => setCertificateForm({ ...certificateForm, issuer: e.target.value })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    className={`w-full p-2 border rounded ${
+                      theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                     }`}
                     required
                   />
                 </div>
+
                 <div>
-                  <label className={`block mb-2 text-sm font-medium ${
+                  <label className={`block text-sm font-medium mb-2 ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Date
+                    Date *
                   </label>
-                  {/* Use DatePicker component */}
                   <DatePicker
                     selected={certificateForm.date}
-                    onChange={(date: Date | null) => setCertificateForm({ ...certificateForm, date: date })}
-                    dateFormat="yyyy-MM-dd"
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
-                    placeholderText="YYYY-MM-DD"
+                    onChange={(date) => setCertificateForm({ ...certificateForm, date })}
+                    className={`w-full p-2 border rounded ${
+                      theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                    }`}
+                    dateFormat="MMMM d, yyyy"
                     required
-                    isClearable
                   />
                 </div>
+
                 <div>
-                  <label className={`block mb-2 text-sm font-medium ${
+                  <label className={`block text-sm font-medium mb-2 ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
                     Description
                   </label>
                   <textarea
+                    name="description"
                     value={certificateForm.description}
                     onChange={(e) => setCertificateForm({ ...certificateForm, description: e.target.value })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    className={`w-full p-2 border rounded ${
+                      theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                     }`}
-                    required
+                    rows={4}
                   />
                 </div>
+
                 <div>
-                  <label className={`block mb-2 text-sm font-medium ${
+                  <label className={`block text-sm font-medium mb-2 ${
                     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Type
+                    Type *
                   </label>
                   <select
+                    name="type"
                     value={certificateForm.type}
                     onChange={(e) => setCertificateForm({ ...certificateForm, type: e.target.value as 'event' | 'course' })}
-                    className={`w-full p-3 rounded-md ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-white text-gray-900'
-                    } border ${
-                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    className={`w-full p-2 border rounded ${
+                      theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                     }`}
                     required
                   >
@@ -1868,21 +1880,78 @@ const Admin: React.FC = () => {
                     <option value="course">Course</option>
                   </select>
                 </div>
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
-                >
-                  {editingId ? 'Update Certificate' : 'Add Certificate'}
-                </button>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Certificate Image
+                  </label>
+                  <input
+                    type="file"
+                    name="image"
+                    accept="image/*"
+                    className={`w-full p-2 border rounded ${
+                      theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                    }`}
+                  />
+                  {certificateForm.image_url && (
+                    <div className="mt-2">
+                      <img
+                        src={imageUrls[certificateForm.image_url] || certificateForm.image_url}
+                        alt="Certificate preview"
+                        className="w-32 h-32 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteImage('certificates', editingId || '')}
+                        className="mt-2 text-red-600 hover:text-red-800"
+                      >
+                        Remove Image
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  {editingId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(null);
+                        setCertificateForm({
+                          title: '',
+                          issuer: '',
+                          date: null,
+                          description: '',
+                          type: 'event',
+                          image_url: ''
+                        });
+                      }}
+                      className={`px-4 py-2 rounded ${
+                        theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-800'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    {editingId ? 'Update Certificate' : 'Add Certificate'}
+                  </button>
+                </div>
               </form>
-              <div className="space-y-4">
+
+              <div className="mt-8 space-y-4">
                 {certificates.map((certificate) => (
                   <motion.div
                     key={certificate.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`p-6 rounded-lg shadow-md ${
-                      theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+                      theme === 'dark' ? 'bg-gray-800' : 'bg-white'
                     }`}
                   >
                     <div className="flex justify-between items-start">
@@ -1891,42 +1960,52 @@ const Admin: React.FC = () => {
                         <p className={`text-sm ${
                           theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                         }`}>
-                          {certificate.issuer}
+                          {certificate.issuer} • {formatDate(certificate.date)}
                         </p>
-                        <p className={`text-sm ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {new Date(certificate.date).toLocaleDateString()}
-                        </p>
-                        <p className={`mt-2 ${
-                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          {certificate.description}
-                        </p>
+                        {certificate.description && (
+                          <p className={`mt-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            {certificate.description}
+                          </p>
+                        )}
+                        {certificate.image_url && (
+                          <div className="mt-4">
+                            <img
+                              src={imageUrls[certificate.image_url] || certificate.image_url}
+                              alt={certificate.title}
+                              className="w-32 h-32 object-cover rounded"
+                            />
+                          </div>
+                        )}
                       </div>
-                      <div className="flex space-x-2 ml-4">
+                      <div className="flex space-x-2">
                         <button
                           onClick={() => {
+                            setEditingId(certificate.id);
                             setCertificateForm({
                               title: certificate.title,
                               issuer: certificate.issuer,
-                              date: certificate.date ? new Date(certificate.date) : null,
-                              description: certificate.description,
-                              type: certificate.type
+                              date: new Date(certificate.date),
+                              description: certificate.description || '',
+                              type: certificate.type,
+                              image_url: certificate.image_url || ''
                             });
-                            setEditingId(certificate.id);
                             scrollToForm(certificateFormRef);
                           }}
-                          className="p-2 text-blue-600 hover:bg-blue-600/10 rounded-full"
-                          title="Edit certificate"
+                          className={`p-2 rounded-full ${
+                            theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
+                          }`}
                         >
-                          <Edit size={16} />
+                          <Edit size={20} />
                         </button>
                         <button
                           onClick={() => handleDelete('certificates', certificate.id)}
-                          className="p-2 text-red-600 hover:bg-red-600/10 rounded-full"
+                          className={`p-2 rounded-full ${
+                            theme === 'dark' ? 'text-gray-400 hover:text-red-500' : 'text-gray-600 hover:text-red-600'
+                          }`}
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={20} />
                         </button>
                       </div>
                     </div>
