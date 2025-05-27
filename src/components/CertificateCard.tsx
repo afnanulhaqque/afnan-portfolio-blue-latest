@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Award, Maximize2, Minimize2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { Certificate } from '../context/SupabaseContext';
 import { convertGoogleDriveUrl } from '../utils/imageUtils';
@@ -23,6 +24,19 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
     setShowImageError(true);
   };
 
+  // Function to truncate description
+  const truncateDescription = (description: string | undefined, wordLimit: number) => {
+    if (!description) return '';
+    const words = description.split(' ');
+    if (words.length > wordLimit) {
+      return words.slice(0, wordLimit).join(' ') + '...';
+    } else {
+      return description;
+    }
+  };
+
+  const truncatedDescription = truncateDescription(certificate.description, 5); // Adjusted word limit
+
   return (
     <>
       <motion.div
@@ -33,61 +47,68 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
           theme === 'dark' ? 'bg-gray-900 hover:shadow-blue-500/20' : 'bg-white hover:shadow-blue-500/30'
         }`}
       >
-        <div className="relative aspect-[4/3] overflow-hidden">
-          {!showImageError ? (
-            <img 
-              src={convertGoogleDriveUrl(certificate.image_url)} 
-              alt={certificate.title} 
-              className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110 cursor-pointer"
-              onClick={toggleFullSize}
-              onError={handleImageError}
-            />
-          ) : (
-            <div className={`w-full h-full flex items-center justify-center ${
-              theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-            }`}>
-              <Award size={48} className="text-blue-600" />
+        <Link to={`/certificates/${certificate.id}`} className="block cursor-pointer">
+          <div className="relative aspect-[4/3] overflow-hidden">
+            {!showImageError ? (
+              <img 
+                src={convertGoogleDriveUrl(certificate.image_url)} 
+                alt={certificate.title} 
+                className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110 cursor-pointer"
+                onClick={toggleFullSize}
+                onError={handleImageError}
+              />
+            ) : (
+              <div className={`w-full h-full flex items-center justify-center ${
+                theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+              }`}>
+                <Award size={48} className="text-blue-600" />
+              </div>
+            )}
+          </div>
+          
+          <div className="p-6">
+            <div className="flex items-center mb-4">
+              <Award size={24} className="text-blue-600 mr-3" />
+              <h3 className="text-xl font-bold">{certificate.title}</h3>
             </div>
-          )}
-        </div>
-        
-        <div className="p-6">
-          <div className="flex items-center mb-4">
-            <Award size={24} className="text-blue-600 mr-3" />
-            <h3 className="text-xl font-bold">{certificate.title}</h3>
-          </div>
-          
-          <div className="flex items-center mb-2">
-            <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
-              certificate.type === 'event'
-                ? 'bg-blue-600/20 text-blue-500'
-                : 'bg-emerald-600/20 text-emerald-500'
+            
+            <div className="flex items-center mb-2">
+              <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
+                certificate.type === 'event'
+                  ? 'bg-blue-600/20 text-blue-500'
+                  : 'bg-emerald-600/20 text-emerald-500'
+              }`}>
+                {certificate.type === 'event' ? 'Event' : 'Course'}
+              </span>
+            </div>
+            
+            <p className={`text-sm mb-2 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              {certificate.type === 'event' ? 'Event' : 'Course'}
-            </span>
+              Issued by {certificate.issuer}
+            </p>
+            
+            <p className={`text-sm mb-4 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {new Date(certificate.date).toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric'
+              })}
+            </p>
+            
+            {truncatedDescription && (
+              <p className={`text-sm ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                {truncatedDescription}
+                {certificate.description && certificate.description.split(' ').length > 20 && (
+                  <span className="text-blue-600 hover:underline ml-1">Read More</span>
+                )}
+              </p>
+            )}
           </div>
-          
-          <p className={`text-sm mb-2 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Issued by {certificate.issuer}
-          </p>
-          
-          <p className={`text-sm mb-4 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            {new Date(certificate.date).toLocaleDateString('en-US', {
-              month: 'long',
-              year: 'numeric'
-            })}
-          </p>
-          
-          <p className={`text-sm ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            {certificate.description}
-          </p>
-        </div>
+        </Link>
       </motion.div>
 
       {/* Full-size Image Modal */}

@@ -1055,16 +1055,30 @@ const Admin: React.FC = () => {
       // Create a unique file name
       const fileExt = selectedProfileImage.name.split('.').pop();
       const fileName = `profile_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `profile/${fileName}`;
+      // Upload directly to the root of the profile-pictures bucket
+      const filePath = fileName;
+
+      console.log('Attempting to upload profile picture.');
+      console.log('Bucket name:', 'profile-pictures');
+      console.log('File path:', filePath);
+      console.log('File size:', compressedFile.size);
 
       // Delete old profile picture if it exists
       if (profilePicture?.image_url) {
         try {
-          const oldImagePath = profilePicture.image_url.split('/').pop();
-          if (oldImagePath) {
-            await supabase.storage
-              .from('profile')
-              .remove([`profile/${oldImagePath}`]);
+          // Extract the file path from the old URL
+          const urlParts = profilePicture.image_url.split('/');
+           // Assuming the URL is like [supabase_url]/storage/v1/object/public/[bucket_name]/[file_path]
+          const bucketIndex = urlParts.indexOf('profile-pictures');
+          if (bucketIndex !== -1 && bucketIndex < urlParts.length - 1) {
+             const oldFilePath = urlParts.slice(bucketIndex + 1).join('/');
+             console.log('Attempting to delete old profile picture file path:', oldFilePath);
+             await supabase.storage
+               .from('profile-pictures')
+               .remove([oldFilePath]);
+             console.log('Old profile picture deleted successfully (if it existed).');
+          } else {
+             console.warn('Could not determine old file path from URL for deletion:', profilePicture.image_url);
           }
         } catch (error) {
           console.error('Error deleting old profile picture:', error);
@@ -1074,7 +1088,7 @@ const Admin: React.FC = () => {
 
       // Upload to Supabase Storage
       const { data, error: uploadError } = await supabase.storage
-        .from('profile')
+        .from('profile-pictures')
         .upload(filePath, compressedFile, {
           cacheControl: '3600',
           upsert: true
@@ -1087,8 +1101,10 @@ const Admin: React.FC = () => {
 
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('profile')
+        .from('profile-pictures')
         .getPublicUrl(filePath);
+
+      console.log('Profile picture upload successful. Public URL:', publicUrl);
 
       // Update or insert the profile picture in the database
       if (profilePicture?.id) {
