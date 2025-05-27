@@ -14,31 +14,34 @@ import Certificates from './pages/Certificates';
 import Achievements from './pages/Achievements';
 import Testimonials from './pages/Testimonials';
 import { SupabaseProvider } from './context/SupabaseContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 function App() {
   return (
-    <SupabaseProvider>
-      <ThemeProvider>
-        <Router>
-          <Layout>
-            <AnimatePresence mode="wait">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/experience" element={<Experience />} />
-                <Route path="/certificates" element={<Certificates />} />
-                <Route path="/achievements" element={<Achievements />} />
-                <Route path="/testimonials" element={<Testimonials />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </AnimatePresence>
-          </Layout>
-        </Router>
-      </ThemeProvider>
-    </SupabaseProvider>
+    <ThemeProvider>
+      <SupabaseProvider>
+        <NotificationProvider>
+          <Router>
+            <Layout>
+              <AnimatePresence mode="wait">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/portfolio" element={<Portfolio />} />
+                  <Route path="/experience" element={<Experience />} />
+                  <Route path="/certificates" element={<Certificates />} />
+                  <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/testimonials" element={<Testimonials />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AnimatePresence>
+            </Layout>
+          </Router>
+        </NotificationProvider>
+      </SupabaseProvider>
+    </ThemeProvider>
   );
 }
 

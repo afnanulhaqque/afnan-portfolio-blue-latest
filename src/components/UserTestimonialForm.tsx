@@ -1,147 +1,121 @@
 import React, { useState } from 'react';
-import { useSupabase } from '../context/SupabaseContext';
-import { Star } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useSupabase } from '../context/SupabaseContext';
+import { useNotification } from '../context/NotificationContext';
+import { Star } from 'lucide-react';
+import { compressImage } from '../utils/imageUtils';
 
 const UserTestimonialForm: React.FC = () => {
   const { theme } = useTheme();
   const { supabase } = useSupabase();
+  const { showNotification } = useNotification();
+  const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     position: '',
     company: '',
     content: '',
-    rating: 5,
-    image_url: ''
+    rating: 5
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus('submitting');
-    setErrorMessage('');
+    setLoading(true);
 
     try {
-      // Validate required fields
-      if (!formData.name || !formData.position || !formData.company || !formData.content) {
-        throw new Error('Please fill in all required fields');
+      let imageUrl = null;
+
+      if (selectedImage) {
+        // Compress the image before uploading
+        const compressedImage = await compressImage(selectedImage);
+        
+        // Upload the image to Supabase Storage
+        const fileExt = selectedImage.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `testimonials/${fileName}`;
+
+        const { error: uploadError, data } = await supabase.storage
+          .from('testimonials')
+          .upload(filePath, compressedImage, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw new Error(`Error uploading image: ${uploadError.message}`);
+        }
+
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('testimonials')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
       }
 
-      // Validate rating
-      if (formData.rating < 1 || formData.rating > 5) {
-        throw new Error('Please select a valid rating');
-      }
-
-      // Prepare testimonial data
-      const testimonialData = {
-        ...formData,
-        is_approved: false,
-        created_at: new Date().toISOString()
-      };
-
-      // Log the data being sent
-      console.log('Submitting testimonial data:', testimonialData);
-
-      // First, check if we can connect to Supabase
-      const { data: testData, error: testError } = await supabase
+      const { error } = await supabase
         .from('testimonials')
-        .select('count')
-        .limit(1);
+        .insert([
+          {
+            ...formData,
+            image_url: imageUrl,
+            is_approved: false
+          }
+        ]);
 
-      if (testError) {
-        console.error('Supabase connection test error:', {
-          message: testError.message,
-          details: testError.details,
-          hint: testError.hint,
-          code: testError.code
-        });
-        throw new Error(`Database connection error: ${testError.message}`);
-      }
+      if (error) throw error;
 
-      // Now try to insert the testimonial
-      const { data, error } = await supabase
-        .from('testimonials')
-        .insert([testimonialData])
-        .select();
-
-      if (error) {
-        console.error('Supabase insert error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          table: 'testimonials',
-          data: testimonialData
-        });
-        throw new Error(`Database error: ${error.message}`);
-      }
-
-      if (!data || data.length === 0) {
-        console.error('No data returned from insert operation');
-        throw new Error('No data returned from the server');
-      }
-
-      console.log('Testimonial submitted successfully:', data);
-      setSubmitStatus('success');
+      showNotification('Testimonial submitted successfully! It will be visible after approval.', 'success');
       setFormData({
         name: '',
         position: '',
         company: '',
         content: '',
-        rating: 5,
-        image_url: ''
+        rating: 5
       });
-    } catch (error: any) {
-      console.error('Error submitting testimonial:', {
-        error,
-        message: error.message,
-        stack: error.stack,
-        formData
-      });
-      setSubmitStatus('error');
-      setErrorMessage(
-        error.message || 
-        'There was an error submitting your testimonial. Please try again.'
-      );
+      setSelectedImage(null);
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Error submitting testimonial:', error);
+      showNotification('Error submitting testimonial. Please try again.', 'error');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className={`rounded-lg shadow-lg p-6 ${
-      theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-    }`}>
-      <h2 className="text-2xl font-bold mb-6">Share Your Experience</h2>
-      
-      {submitStatus === 'success' ? (
-        <div className="text-green-600 dark:text-green-400 mb-4">
-          Thank you for your testimonial! It will be reviewed and published soon.
-        </div>
-      ) : submitStatus === 'error' ? (
-        <div className="text-red-600 dark:text-red-400 mb-4">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Your Name *
+            Name *
           </label>
           <input
             type="text"
+            required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className={`w-full p-2 border rounded ${
-              theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+            className={`w-full px-4 py-2 rounded-md border ${
+              theme === 'dark'
+                ? 'bg-gray-800 border-gray-700 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
             }`}
-            required
           />
         </div>
 
@@ -149,16 +123,18 @@ const UserTestimonialForm: React.FC = () => {
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Your Position *
+            Position *
           </label>
           <input
             type="text"
+            required
             value={formData.position}
             onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-            className={`w-full p-2 border rounded ${
-              theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+            className={`w-full px-4 py-2 rounded-md border ${
+              theme === 'dark'
+                ? 'bg-gray-800 border-gray-700 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
             }`}
-            required
           />
         </div>
 
@@ -166,33 +142,18 @@ const UserTestimonialForm: React.FC = () => {
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
           }`}>
-            Your Company *
+            Company *
           </label>
           <input
             type="text"
+            required
             value={formData.company}
             onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-            className={`w-full p-2 border rounded ${
-              theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+            className={`w-full px-4 py-2 rounded-md border ${
+              theme === 'dark'
+                ? 'bg-gray-800 border-gray-700 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
             }`}
-            required
-          />
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Your Testimonial *
-          </label>
-          <textarea
-            value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-            className={`w-full p-2 border rounded ${
-              theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-            }`}
-            rows={4}
-            required
           />
         </div>
 
@@ -203,53 +164,101 @@ const UserTestimonialForm: React.FC = () => {
             Rating *
           </label>
           <div className="flex items-center space-x-1">
-            {[1, 2, 3, 4, 5].map((rating) => (
+            {[1, 2, 3, 4, 5].map((star) => (
               <button
-                key={rating}
+                key={star}
                 type="button"
-                onClick={() => setFormData({ ...formData, rating })}
+                onClick={() => setFormData({ ...formData, rating: star })}
                 className="focus:outline-none"
               >
                 <Star
                   size={24}
-                  className={rating <= formData.rating ? 'text-yellow-400' : 'text-gray-300'}
-                  fill={rating <= formData.rating ? 'currentColor' : 'none'}
+                  className={`${
+                    star <= formData.rating
+                      ? 'text-yellow-400 fill-yellow-400'
+                      : theme === 'dark'
+                      ? 'text-gray-600'
+                      : 'text-gray-300'
+                  }`}
                 />
               </button>
             ))}
           </div>
         </div>
+      </div>
 
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Profile Image URL (optional)
-          </label>
-          <input
-            type="url"
-            value={formData.image_url}
-            onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-            className={`w-full p-2 border rounded ${
-              theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-            }`}
-            placeholder="https://example.com/image.jpg"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`w-full py-2 px-4 rounded-md transition-colors ${
-            isSubmitting
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
+      <div>
+        <label className={`block text-sm font-medium mb-2 ${
+          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+        }`}>
+          Your Testimonial *
+        </label>
+        <textarea
+          required
+          value={formData.content}
+          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+          rows={4}
+          className={`w-full px-4 py-2 rounded-md border ${
+            theme === 'dark'
+              ? 'bg-gray-800 border-gray-700 text-white'
+              : 'bg-white border-gray-300 text-gray-900'
           }`}
-        >
-          {isSubmitting ? 'Submitting...' : 'Submit Testimonial'}
-        </button>
-      </form>
-    </div>
+        />
+      </div>
+
+      <div>
+        <label className={`block text-sm font-medium mb-2 ${
+          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+        }`}>
+          Profile Picture
+        </label>
+        <div className="flex items-center space-x-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className={`block w-full text-sm ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+            } file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium ${
+              theme === 'dark'
+                ? 'file:bg-gray-700 file:text-white hover:file:bg-gray-600'
+                : 'file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300'
+            }`}
+          />
+          {imagePreview && (
+            <div className="relative">
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="w-16 h-16 rounded-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedImage(null);
+                  setImagePreview(null);
+                }}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className={`w-full px-6 py-3 rounded-md text-white font-medium transition-colors duration-300 ${
+          loading
+            ? 'bg-blue-400 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700'
+        }`}
+      >
+        {loading ? 'Submitting...' : 'Submit Testimonial'}
+      </button>
+    </form>
   );
 };
 
