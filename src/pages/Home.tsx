@@ -5,10 +5,16 @@ import { ArrowRight, Download, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase } from '../context/SupabaseContext';
 
+interface AboutSection {
+  tagline?: string;
+}
+
 const Home: React.FC = () => {
   const { theme } = useTheme();
   const { supabase } = useSupabase();
   const [isLoading, setIsLoading] = useState(true);
+  const [tagline, setTagline] = useState<string | null>(null);
+  const [taglineLoading, setTaglineLoading] = useState(true);
 
   useEffect(() => {
     const fetchCvLink = async () => {
@@ -70,6 +76,32 @@ const Home: React.FC = () => {
     };
     
     fetchCvLink();
+  }, [supabase]);
+
+  useEffect(() => {
+    const fetchTagline = async () => {
+      setTaglineLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('about_section')
+          .select('tagline')
+          .single();
+
+        if (error) {
+          console.error('Error fetching tagline:', error);
+        }
+
+        if (data) {
+          setTagline(data.tagline);
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching tagline:', error);
+      } finally {
+        setTaglineLoading(false);
+      }
+    };
+
+    fetchTagline();
   }, [supabase]);
 
   const scrollToAbout = () => {
@@ -152,7 +184,7 @@ const Home: React.FC = () => {
               theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
             }`}
           >
-            Information Technology Undergraduate & PR Lead at BlackBox AI
+            {taglineLoading ? 'Loading...' : tagline || ''}
           </motion.p>
           
           <motion.div

@@ -48,6 +48,7 @@ interface AboutSection {
   id: string;
   title: string;
   content: string;
+  tagline?: string; // Add tagline field
   created_at: string;
   updated_at: string;
 }
@@ -90,6 +91,7 @@ const Admin: React.FC = () => {
   });
   const [aboutSection, setAboutSection] = useState<AboutSection | null>(null);
   const [editedContent, setEditedContent] = useState('');
+  const [editedTagline, setEditedTagline] = useState(''); // State for tagline
   const [profilePicture, setProfilePicture] = useState<ProfilePicture | null>(null);
   const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>('');
@@ -325,7 +327,7 @@ const Admin: React.FC = () => {
       // Fetch about section
       const { data: aboutData, error: aboutError } = await supabase
         .from('about_section')
-        .select('*')
+        .select('id, title, content, tagline') // Select tagline
         .single();
 
       if (aboutError) throw aboutError;
@@ -333,6 +335,7 @@ const Admin: React.FC = () => {
       if (aboutData) {
         setAboutSection(aboutData);
         setEditedContent(aboutData.content);
+        setEditedTagline(aboutData.tagline || ''); // Set tagline state
       }
 
       // Fetch profile picture
@@ -997,7 +1000,7 @@ const Admin: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('about_section')
-        .select('*')
+        .select('id, title, content, tagline') // Select tagline
         .single();
 
       if (error) throw error;
@@ -1005,6 +1008,7 @@ const Admin: React.FC = () => {
       if (data) {
         setAboutSection(data);
         setEditedContent(data.content);
+        setEditedTagline(data.tagline || ''); // Set tagline state
       }
     } catch (error) {
       console.error('Error fetching about section:', error);
@@ -1020,12 +1024,12 @@ const Admin: React.FC = () => {
     try {
       const { error } = await supabase
         .from('about_section')
-        .update({ content: editedContent })
+        .update({ content: editedContent, tagline: editedTagline }) // Update tagline
         .eq('id', aboutSection.id);
 
       if (error) throw error;
 
-      setAboutSection(prev => prev ? { ...prev, content: editedContent } : null);
+      setAboutSection(prev => prev ? { ...prev, content: editedContent, tagline: editedTagline } : null);
       showNotification('About section updated successfully', 'success');
     } catch (error) {
       console.error('Error updating about section:', error);
@@ -2734,6 +2738,15 @@ const Admin: React.FC = () => {
                   <div className="text-center py-4">Loading...</div>
                 ) : (
                   <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Tagline</label>
+                      <input
+                        type="text"
+                        value={editedTagline}
+                        onChange={(e) => setEditedTagline(e.target.value)}
+                        className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      />
+                    </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Content</label>
                       <textarea
