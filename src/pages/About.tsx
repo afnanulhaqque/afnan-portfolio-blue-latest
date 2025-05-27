@@ -293,8 +293,8 @@ const About: React.FC = () => {
               ))}
             </div>
             
-            <div className={`grid grid-cols-1 gap-x-12 gap-y-4 ${
-              selectedCategory === 'all' ? 'md:grid-cols-4' : 'md:grid-cols-3'
+            <div className={`grid gap-x-12 gap-y-4 ${
+              selectedCategory === 'all' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'
             }`}>
               {filteredSkills.map((skill, index) => (
                 <SkillBar key={skill.id} skill={skill} index={index} />
