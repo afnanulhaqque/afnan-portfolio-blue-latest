@@ -4,27 +4,12 @@ import { Link } from 'react-router-dom';
 import { BookOpen, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SkillBar from '../components/SkillBar';
-import TestimonialCard from '../components/TestimonialCard';
 import { useSupabase, Skill } from '../context/SupabaseContext';
-import UserTestimonialForm from '../components/UserTestimonialForm';
-
-interface Testimonial {
-  id: string;
-  name: string;
-  position: string;
-  company: string;
-  content: string;
-  rating: number;
-  image_url?: string;
-  is_approved: boolean;
-  created_at: string;
-}
 
 const About: React.FC = () => {
   const { theme } = useTheme();
   const { getSkills, supabase } = useSupabase();
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,30 +23,6 @@ const About: React.FC = () => {
         // Extract unique categories
         const categories = ['all', ...new Set(skillsData.map(skill => skill.category))];
         setSkillCategories(categories);
-
-        // Fetch approved testimonials
-        const { data: testimonialsData, error } = await supabase
-          .from('testimonials')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching testimonials:', error);
-          throw error;
-        }
-
-        if (testimonialsData) {
-          console.log('Fetched testimonials data:', testimonialsData);
-          // Ensure all testimonials have the required fields
-          const validTestimonials = testimonialsData.map(testimonial => ({
-            ...testimonial,
-            is_approved: testimonial.is_approved ?? false,
-            created_at: testimonial.created_at ?? new Date().toISOString()
-          }));
-          setTestimonials(validTestimonials);
-        } else {
-          setTestimonials([]);
-        }
         
         setLoading(false);
       } catch (error) {
@@ -72,68 +33,16 @@ const About: React.FC = () => {
     
     fetchData();
   }, [getSkills, supabase]);
-  
-  // Filter skills by category
-  const filteredSkills = selectedCategory === 'all' 
-    ? skills 
+
+  const filteredSkills = selectedCategory === 'all'
+    ? skills
     : skills.filter(skill => skill.category === selectedCategory);
-  
+
   return (
-    <div className="pt-20">
+    <div className="container mx-auto px-4 py-8">
       {/* About Section */}
-      <section className="mb-20">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8">
-          <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>About </span>
-          <span className="text-blue-600">Me</span>
-        </h1>
-        
+      <section className="mb-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <img
-                src="https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
-                alt="Afnan Ul Haq"
-                className="w-full h-auto rounded-lg shadow-lg mb-6"
-              />
-              
-              <div className={`p-6 rounded-lg ${
-                theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
-              }`}>
-                <h3 className="text-xl font-semibold mb-4">Personal Info</h3>
-                <ul className="space-y-3">
-                  <li className="flex flex-col">
-                    <span className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>Name</span>
-                    <span className="font-medium">Afnan Ul Haq</span>
-                  </li>
-                  <li className="flex flex-col">
-                    <span className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>Study</span>
-                    <span className="font-medium">BS Information Technology</span>
-                  </li>
-                  <li className="flex flex-col">
-                    <span className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>Institution</span>
-                    <span className="font-medium">International Islamic University Islamabad</span>
-                  </li>
-                  <li className="flex flex-col">
-                    <span className={`text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>Email</span>
-                    <a href="mailto:afnanulhaq4@gmail.com" className="text-blue-600 hover:underline">afnanulhaq4@gmail.com</a>
-                  </li>
-                </ul>
-              </div>
-            </motion.div>
-          </div>
-          
           <div className="md:col-span-2">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -248,31 +157,6 @@ const About: React.FC = () => {
             </div>
           </>
         )}
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="mt-32">
-        <h2 className="text-2xl md:text-3xl font-bold mb-8">
-          <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Client </span>
-          <span className="text-blue-600">Testimonials</span>
-        </h2>
-        
-        {loading ? (
-          <div className={`text-center py-8 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Loading testimonials...
-          </div>
-        ) : ([
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <TestimonialCard key={testimonial.id} testimonial={testimonial} index={index} />
-            ))}
-          </div>,
-           <div className="mt-4">
-             <UserTestimonialForm />
-           </div>
-          ])}
       </section>
     </div>
   );
