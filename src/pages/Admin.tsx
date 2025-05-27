@@ -3,13 +3,14 @@ import { motion } from 'framer-motion';
 import { Plus, Trash2, Edit, Save, X, Loader, Download, Check, Star } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, ContactMessage, Project, Experience, Skill, Certificate } from '../context/SupabaseContext';
+import { useNotification } from '../context/NotificationContext';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { validateAndConvertImageUrl } from '../utils/imageUtils';
 import { compressImage } from '../utils/imageUtils';
 import CertificateDetail from '../components/CertificateDetail';
 
-type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements';
+type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements' | 'about';
 
 interface Testimonial {
   id: string;
@@ -43,9 +44,25 @@ interface AchievementForm {
   awarded_by: string;
 }
 
+interface AboutSection {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProfilePicture {
+  id: string;
+  image_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const Admin: React.FC = () => {
   const { theme } = useTheme();
   const { supabase } = useSupabase();
+  const { showNotification } = useNotification();
   const [activeContent, setActiveContent] = useState<ContentType>('messages');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
@@ -71,6 +88,11 @@ const Admin: React.FC = () => {
     is_approved: false,
     awarded_by: ''
   });
+  const [aboutSection, setAboutSection] = useState<AboutSection | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [profilePicture, setProfilePicture] = useState<ProfilePicture | null>(null);
+  const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>('');
 
   // Notification state
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | ''; isVisible: boolean }>({ message: '', type: '', isVisible: false });
@@ -298,6 +320,35 @@ const Admin: React.FC = () => {
         setAchievements(formattedAchievements);
       } else {
         setAchievements([]);
+      }
+
+      // Fetch about section
+      const { data: aboutData, error: aboutError } = await supabase
+        .from('about_section')
+        .select('*')
+        .single();
+
+      if (aboutError) throw aboutError;
+
+      if (aboutData) {
+        setAboutSection(aboutData);
+        setEditedContent(aboutData.content);
+      }
+
+      // Fetch profile picture
+      const { data: profileData, error: profileError } = await supabase
+        .from('profile_picture')
+        .select('*')
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile picture:', profileError);
+        throw profileError;
+      }
+
+      if (profileData) {
+        setProfilePicture(profileData);
+        setProfileImagePreview(profileData.image_url);
       }
 
     } catch (error) {
@@ -938,6 +989,159 @@ const Admin: React.FC = () => {
     }
   }, [notification]);
 
+  useEffect(() => {
+    fetchAboutSection();
+  }, []);
+
+  const fetchAboutSection = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('about_section')
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setAboutSection(data);
+        setEditedContent(data.content);
+      }
+    } catch (error) {
+      console.error('Error fetching about section:', error);
+      showNotification('Error fetching about section', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!aboutSection) return;
+
+    try {
+      const { error } = await supabase
+        .from('about_section')
+        .update({ content: editedContent })
+        .eq('id', aboutSection.id);
+
+      if (error) throw error;
+
+      setAboutSection(prev => prev ? { ...prev, content: editedContent } : null);
+      showNotification('About section updated successfully', 'success');
+    } catch (error) {
+      console.error('Error updating about section:', error);
+      showNotification('Error updating about section', 'error');
+    }
+  };
+
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedProfileImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfileImageSave = async () => {
+    if (!selectedProfileImage) return;
+
+    try {
+      // Compress the image before uploading
+      const compressedFile = await compressImage(selectedProfileImage);
+      
+      // Create a unique file name
+      const fileExt = selectedProfileImage.name.split('.').pop();
+      const fileName = `profile_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `profile/${fileName}`;
+
+      // Delete old profile picture if it exists
+      if (profilePicture?.image_url) {
+        try {
+          const oldImagePath = profilePicture.image_url.split('/').pop();
+          if (oldImagePath) {
+            await supabase.storage
+              .from('profile')
+              .remove([`profile/${oldImagePath}`]);
+          }
+        } catch (error) {
+          console.error('Error deleting old profile picture:', error);
+          // Continue with upload even if delete fails
+        }
+      }
+
+      // Upload to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from('profile')
+        .upload(filePath, compressedFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        throw new Error('Failed to upload image: ' + uploadError.message);
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile')
+        .getPublicUrl(filePath);
+
+      // Update or insert the profile picture in the database
+      if (profilePicture?.id) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('profile_picture')
+          .update({ 
+            image_url: publicUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', profilePicture.id);
+
+        if (updateError) {
+          console.error('Error updating profile picture in database:', updateError);
+          throw new Error('Failed to update profile picture in database: ' + updateError.message);
+        }
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('profile_picture')
+          .insert([{ 
+            image_url: publicUrl,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
+
+        if (insertError) {
+          console.error('Error inserting profile picture in database:', insertError);
+          throw new Error('Failed to insert profile picture in database: ' + insertError.message);
+        }
+      }
+
+      // Refresh the profile picture data
+      const { data: newProfileData, error: fetchError } = await supabase
+        .from('profile_picture')
+        .select('*')
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching updated profile picture:', fetchError);
+      } else {
+        setProfilePicture(newProfileData);
+        setProfileImagePreview(newProfileData.image_url);
+      }
+
+      setSelectedProfileImage(null);
+      showNotification('Profile picture updated successfully', 'success');
+    } catch (error) {
+      console.error('Error updating profile picture:', error);
+      showNotification('Error updating profile picture: ' + (error as Error).message, 'error');
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="pt-20">
@@ -1138,6 +1342,18 @@ const Admin: React.FC = () => {
           }`}
         >
           Achievements
+        </button>
+        <button
+          onClick={() => setActiveContent('about')}
+          className={`px-4 py-2 rounded-md transition-colors duration-300 ${
+            activeContent === 'about'
+              ? 'bg-blue-600 text-white'
+              : theme === 'dark'
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          About
         </button>
       </div>
       
@@ -1601,7 +1817,7 @@ const Admin: React.FC = () => {
                             ? 'bg-blue-600/20 text-blue-500'
                             : experience.type === 'education'
                               ? 'bg-emerald-600/20 text-emerald-500'
-                              : 'bg-teal-600/20 text-teal-500'
+                              : 'bg-orange-600/20 text-orange-500'
                         }`}>
                           {experience.type}
                         </span>
@@ -2401,6 +2617,92 @@ const Admin: React.FC = () => {
                       </div>
                     </motion.div>
                   ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* About Section */}
+          {activeContent === 'about' && (
+            <div className="space-y-8">
+              {/* Profile Picture Section */}
+              <div className={`p-6 rounded-lg ${
+                theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
+              }`}>
+                <h2 className="text-2xl font-bold mb-4">Profile Picture</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-200">
+                      <img
+                        src={profileImagePreview}
+                        alt="Profile Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className={`w-full p-2 border rounded ${
+                          theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+                        }`}
+                      />
+                      <p className={`mt-2 text-sm ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Upload a new profile picture (max 5MB, JPG, PNG, GIF, or WebP)
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleProfileImageSave}
+                    disabled={!selectedProfileImage}
+                    className={`px-4 py-2 rounded-md transition-colors duration-300 ${
+                      selectedProfileImage
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    }`}
+                  >
+                    Save Profile Picture
+                  </button>
+                </div>
+              </div>
+
+              {/* About Section */}
+              <div className={`p-6 rounded-lg ${
+                theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
+              }`}>
+                <h2 className="text-2xl font-bold mb-4">Edit About Section</h2>
+                
+                {loading ? (
+                  <div className="text-center py-4">Loading...</div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Content</label>
+                      <textarea
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className={`w-full h-64 p-4 rounded-lg resize-none ${
+                          theme === 'dark'
+                            ? 'bg-gray-800 text-white border-gray-700'
+                            : 'bg-white text-gray-900 border-gray-300'
+                        } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSave}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

@@ -1,10 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, ExternalLink, Loader } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SkillBar from '../components/SkillBar';
 import { useSupabase, Skill } from '../context/SupabaseContext';
+
+interface AboutSection {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProfilePicture {
+  id: string;
+  image_url: string;
+  created_at: string;
+}
+
+// Cache for storing fetched data
+const dataCache = {
+  about: null as AboutSection | null,
+  profile: null as ProfilePicture | null,
+  skills: null as Skill[] | null,
+  lastFetched: 0,
+  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+};
 
 const About: React.FC = () => {
   const { theme } = useTheme();
@@ -12,33 +35,79 @@ const About: React.FC = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [aboutSection, setAboutSection] = useState<AboutSection | null>(null);
+  const [profilePicture, setProfilePicture] = useState<ProfilePicture | null>(null);
+  const [contentLoading, setContentLoading] = useState(true);
+  const [skillsLoading, setSkillsLoading] = useState(true);
 
-  const fetchData = async () => {
-    try {
-      const skillsData = await getSkills();
-      setSkills(skillsData);
-      
-      // Extract unique categories
-      const categories = ['all', ...new Set(skillsData.map(skill => skill.category))];
-      setSkillCategories(categories);
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setLoading(false);
-    }
-  };
-
+  // Fetch about section and profile picture
   useEffect(() => {
-    fetchData();
-  }, [getSkills, supabase]);
-  
+    const fetchContent = async () => {
+      try {
+        // Fetch about section content
+        const { data: aboutData, error: aboutError } = await supabase
+          .from('about_section')
+          .select('*')
+          .single();
+
+        if (aboutError) {
+          console.error('Error fetching about section:', aboutError);
+          throw aboutError;
+        }
+
+        if (aboutData) {
+          setAboutSection(aboutData);
+        }
+
+        // Fetch profile picture
+        const { data: profileData, error: profileError } = await supabase
+          .from('profile_picture')
+          .select('*')
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile picture:', profileError);
+          throw profileError;
+        }
+
+        if (profileData) {
+          setProfilePicture(profileData);
+        }
+      } catch (error) {
+        console.error('Error fetching content:', error);
+      } finally {
+        setContentLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, [supabase]);
+
+  // Fetch skills separately
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const skillsData = await getSkills();
+        setSkills(skillsData);
+        
+        // Extract unique categories
+        const categories = ['all', ...new Set(skillsData.map(skill => skill.category))];
+        setSkillCategories(categories);
+      } catch (error) {
+        console.error('Error fetching skills:', error);
+      } finally {
+        setSkillsLoading(false);
+      }
+    };
+
+    fetchSkills();
+  }, [getSkills]);
+
   // Filter skills by category
   const filteredSkills = selectedCategory === 'all' 
     ? skills 
     : skills.filter(skill => skill.category === selectedCategory);
-  
+
   return (
     <div className="pt-20">
       {/* About Section */}
@@ -55,11 +124,20 @@ const About: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <img
-                src="https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
-                alt="Afnan Ul Haq"
-                className="w-full h-auto rounded-lg shadow-lg mb-6"
-              />
+              {contentLoading ? (
+                <div className={`w-full h-64 rounded-lg ${
+                  theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                } flex items-center justify-center`}>
+                  <Loader size={24} className="animate-spin text-blue-600" />
+                </div>
+              ) : (
+                <img
+                  src={profilePicture?.image_url || "https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"}
+                  alt="Afnan Ul Haq"
+                  className="w-full h-auto rounded-lg shadow-lg mb-6"
+                  loading="eager"
+                />
+              )}
               
               <div className={`p-6 rounded-lg ${
                 theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
@@ -103,25 +181,32 @@ const About: React.FC = () => {
             >
               <h2 className="text-2xl font-bold mb-6">Who am I?</h2>
               
-              <div className="space-y-4 mb-8">
-                <p className={`leading-relaxed ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  I'm a passionate and driven undergraduate student pursuing a Bachelor of Science in Information Technology at the International Islamic University Islamabad (IIUI). With a strong inclination toward technology, media, and community engagement, I've built a diverse portfolio of experience across various domains.
-                </p>
-                
-                <p className={`leading-relaxed ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  I currently serve as the PR Lead at BlackBox AI – IIUI, where I oversee communication strategies and public relations initiatives. Previously, I held notable roles such as Content Creator, Media Team Lead, and Social Media Strategist at The Computer Science Society – IIUI, and Operational Lead at Microsoft Learn Student Club – IIUI Chapter.
-                </p>
-                
-                <p className={`leading-relaxed ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  I've also contributed to the Hult Prize – IIUI Chapter as its Marketing and Media Lead, co-founder, and Media Team Lead. I'm recognized as an ambassador for multiple prestigious tech platforms and events, including DevCon 25 by Software Society MCS, Connected Pakistan, Air Nexus 25, Tech Fest Gala, and Global Youth Movement Pakistan.
-                </p>
-              </div>
+              {contentLoading ? (
+                <div className="space-y-4 mb-8">
+                  <div className={`h-4 rounded ${
+                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+                  } animate-pulse`}></div>
+                  <div className={`h-4 rounded ${
+                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+                  } animate-pulse`}></div>
+                  <div className={`h-4 rounded ${
+                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+                  } animate-pulse`}></div>
+                </div>
+              ) : (
+                <div className="space-y-4 mb-8">
+                  {aboutSection?.content.split('\n').map((paragraph, index) => (
+                    <p
+                      key={index}
+                      className={`leading-relaxed ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}
+                    >
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className={`p-6 rounded-lg ${
@@ -143,7 +228,7 @@ const About: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex items-center justify-between">
+              <div className="flex gap-4">
                 <Link
                   to="/experience"
                   className={`inline-flex items-center px-4 py-2 rounded-md transition-colors duration-300 ${
@@ -170,17 +255,23 @@ const About: React.FC = () => {
       </section>
 
       {/* Skills Section */}
-      <section className="mb-20">
+      <section>
         <h2 className="text-2xl md:text-3xl font-bold mb-8">
           <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>My </span>
           <span className="text-blue-600">Skills</span>
         </h2>
         
-        {loading ? (
-          <div className={`text-center py-8 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Loading skills...
+        {skillsLoading ? (
+          <div className="space-y-4">
+            <div className={`h-4 rounded ${
+              theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+            } animate-pulse`}></div>
+            <div className={`h-4 rounded ${
+              theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+            } animate-pulse`}></div>
+            <div className={`h-4 rounded ${
+              theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+            } animate-pulse`}></div>
           </div>
         ) : (
           <>
