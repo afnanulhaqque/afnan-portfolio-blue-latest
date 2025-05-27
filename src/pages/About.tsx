@@ -4,50 +4,141 @@ import { Link } from 'react-router-dom';
 import { BookOpen, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SkillBar from '../components/SkillBar';
+import TestimonialCard from '../components/TestimonialCard';
 import { useSupabase, Skill } from '../context/SupabaseContext';
+import UserTestimonialForm from '../components/UserTestimonialForm';
+
+interface Testimonial {
+  id: string;
+  name: string;
+  position: string;
+  company: string;
+  content: string;
+  rating: number;
+  image_url?: string;
+  is_approved: boolean;
+  created_at: string;
+}
 
 const About: React.FC = () => {
   const { theme } = useTheme();
   const { getSkills, supabase } = useSupabase();
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const skillsData = await getSkills();
-        setSkills(skillsData);
-        
-        // Extract unique categories
-        const categories = ['all', ...new Set(skillsData.map(skill => skill.category))];
-        setSkillCategories(categories);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setLoading(false);
+  const fetchData = async () => {
+    try {
+      const skillsData = await getSkills();
+      setSkills(skillsData);
+
+      // Extract unique categories
+      const categories = ['all', ...new Set(skillsData.map(skill => skill.category))];
+      setSkillCategories(categories);
+
+      // Fetch approved testimonials
+      const { data: testimonialsData, error } = await supabase
+        .from('testimonials')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching testimonials:', error);
+        throw error;
       }
-    };
-    
+
+      if (testimonialsData) {
+        console.log('Fetched testimonials data:', testimonialsData);
+        // Ensure all testimonials have the required fields
+        const validTestimonials = testimonialsData.map(testimonial => ({
+          ...testimonial,
+          is_approved: testimonial.is_approved ?? false,
+          created_at: testimonial.created_at ?? new Date().toISOString()
+        }));
+        setTestimonials(validTestimonials);
+      } else {
+        setTestimonials([]);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [getSkills, supabase]);
-
-  const filteredSkills = selectedCategory === 'all'
-    ? skills
+  
+  // Filter skills by category
+  const filteredSkills = selectedCategory === 'all' 
+    ? skills 
     : skills.filter(skill => skill.category === selectedCategory);
-
+  
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="pt-20">
       {/* About Section */}
-      <section className="mb-16">
+      <section className="mb-20">
+        <h1 className="text-3xl md:text-4xl font-bold mb-8">
+          <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>About </span>
+          <span className="text-blue-600">Me</span>
+        </h1>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-1">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <img
+                src="https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+                alt="Afnan Ul Haq"
+                className="w-full h-auto rounded-lg shadow-lg mb-6"
+              />
+              
+              <div className={`p-6 rounded-lg ${
+                theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
+              }`}>
+                <h3 className="text-xl font-semibold mb-4">Personal Info</h3>
+                <ul className="space-y-3">
+                  <li className="flex flex-col">
+                    <span className={`text-sm ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Name</span>
+                    <span className="font-medium">Afnan Ul Haq</span>
+                  </li>
+                  <li className="flex flex-col">
+                    <span className={`text-sm ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Study</span>
+                    <span className="font-medium">BS Information Technology</span>
+                  </li>
+                  <li className="flex flex-col">
+                    <span className={`text-sm ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Institution</span>
+                    <span className="font-medium">International Islamic University Islamabad</span>
+                  </li>
+                  <li className="flex flex-col">
+                    <span className={`text-sm ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Email</span>
+                    <a href="mailto:afnanulhaq4@gmail.com" className="text-blue-600 hover:underline">afnanulhaq4@gmail.com</a>
+                  </li>
+                </ul>
+              </div>
+            </motion.div>
+          </div>
+          
           <div className="md:col-span-2">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.5 }}
             >
               <h2 className="text-2xl font-bold mb-6">Who am I?</h2>
               
@@ -70,7 +161,7 @@ const About: React.FC = () => {
                   I've also contributed to the Hult Prize – IIUI Chapter as its Marketing and Media Lead, co-founder, and Media Team Lead. I'm recognized as an ambassador for multiple prestigious tech platforms and events, including DevCon 25 by Software Society MCS, Connected Pakistan, Air Nexus 25, Tech Fest Gala, and Global Youth Movement Pakistan.
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className={`p-6 rounded-lg ${
                   theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
@@ -90,7 +181,7 @@ const About: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Link
                   to="/experience"
@@ -116,44 +207,29 @@ const About: React.FC = () => {
           </div>
         </div>
       </section>
-      
-      {/* Skills Section */}
-      <section>
+
+      {/* Testimonials Section */}
+      <section className="mt-32">
         <h2 className="text-2xl md:text-3xl font-bold mb-8">
-          <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>My </span>
-          <span className="text-blue-600">Skills</span>
+          <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Client </span>
+          <span className="text-blue-600">Testimonials</span>
         </h2>
         
         {loading ? (
           <div className={`text-center py-8 ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            Loading skills...
+            Loading testimonials...
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap gap-2 mb-8">
-              {skillCategories.map((category, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-full text-sm transition-all duration-300 ${
-                    selectedCategory === category
-                      ? 'bg-blue-600 text-white'
-                      : theme === 'dark'
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {testimonials.map((testimonial, index) => (
+                <TestimonialCard key={testimonial.id} testimonial={testimonial} index={index} />
               ))}
             </div>
-            
-            <div className={`grid grid-cols-1 gap-x-12 gap-y-4 ${selectedCategory === 'all' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-              {filteredSkills.map((skill, index) => (
-                <SkillBar key={skill.id} skill={skill} index={index} />
-              ))}
+            <div className="mt-4">
+              <UserTestimonialForm />
             </div>
           </>
         )}
