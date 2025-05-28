@@ -132,31 +132,34 @@ const About: React.FC = () => {
         </h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-            <motion.div className="self-start"
+          {/* Left Column - Profile Picture and Personal Info */}
+          <div className="md:col-span-1 space-y-6">
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
               {contentLoading ? (
-                <div className={`w-full h-64 rounded-lg ${
+                <div className={`w-full max-w-[250px] h-[250px] rounded-lg ${
                   theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
                 } flex items-center justify-center`}>
                   <Loader size={24} className="animate-spin text-blue-600" />
                 </div>
               ) : profilePicture?.image_url ? (
-                <img
-                  src={profilePicture.image_url}
-                  alt="Afnan Ul Haq"
-                  className="w-full h-auto rounded-lg shadow-lg mb-6 mx-auto"
-                  loading="eager"
-                  onError={(e) => {
-                    console.error('Error loading image:', e);
-                    e.currentTarget.src = 'https://via.placeholder.com/400x400?text=Profile+Picture';
-                  }}
-                />
+                <div className="mb-6">
+                  <img
+                    src={profilePicture.image_url}
+                    alt="Afnan Ul Haq"
+                    className="w-[250px] h-[250px] object-cover rounded-lg shadow-lg"
+                    loading="eager"
+                    onError={(e) => {
+                      console.error('Error loading image:', e);
+                      e.currentTarget.src = 'https://via.placeholder.com/250x250?text=Profile+Picture';
+                    }}
+                  />
+                </div>
               ) : (
-                <div className={`w-full h-64 rounded-lg ${
+                <div className={`w-full max-w-[250px] h-[250px] rounded-lg ${
                   theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
                 } flex items-center justify-center`}>
                   <p className="text-gray-500">No profile picture available</p>
@@ -197,11 +200,13 @@ const About: React.FC = () => {
             </motion.div>
           </div>
           
+          {/* Right Column - About Me */}
           <div className="md:col-span-2">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              className="h-full"
             >
               <h2 className="text-2xl font-bold mb-6">Who am I?</h2>
               
