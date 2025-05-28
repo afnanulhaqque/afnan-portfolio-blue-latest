@@ -63,15 +63,29 @@ const About: React.FC = () => {
         const { data: profileData, error: profileError } = await supabase
           .from('profile_picture')
           .select('*')
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1);
 
         if (profileError) {
           console.error('Error fetching profile picture:', profileError);
           throw profileError;
         }
 
-        if (profileData) {
-          setProfilePicture(profileData);
+        console.log('Profile picture data:', profileData);
+
+        if (profileData && profileData.length > 0) {
+          const pictureData = profileData[0];
+          // Ensure the image URL is properly formatted
+          const imageUrl = pictureData.image_url?.startsWith('http') 
+            ? pictureData.image_url 
+            : `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/${pictureData.image_url}`;
+          
+          setProfilePicture({
+            ...pictureData,
+            image_url: imageUrl
+          });
+        } else {
+          console.error('No profile picture data found');
         }
       } catch (error) {
         console.error('Error fetching content:', error);
@@ -119,7 +133,7 @@ const About: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-1">
-            <motion.div
+            <motion.div className="self-start"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
@@ -130,13 +144,23 @@ const About: React.FC = () => {
                 } flex items-center justify-center`}>
                   <Loader size={24} className="animate-spin text-blue-600" />
                 </div>
-              ) : (
+              ) : profilePicture?.image_url ? (
                 <img
-                  src={profilePicture?.image_url || "https://images.pexels.com/photos/927022/pexels-photo-927022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"}
+                  src={profilePicture.image_url}
                   alt="Afnan Ul Haq"
-                  className="w-64 h-64 object-cover rounded-lg shadow-lg mb-6 mx-auto"
+                  className="w-full h-auto rounded-lg shadow-lg mb-6 mx-auto"
                   loading="eager"
+                  onError={(e) => {
+                    console.error('Error loading image:', e);
+                    e.currentTarget.src = 'https://via.placeholder.com/400x400?text=Profile+Picture';
+                  }}
                 />
+              ) : (
+                <div className={`w-full h-64 rounded-lg ${
+                  theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                } flex items-center justify-center`}>
+                  <p className="text-gray-500">No profile picture available</p>
+                </div>
               )}
               
               <div className={`p-6 rounded-lg ${
