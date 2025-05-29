@@ -55,6 +55,7 @@ interface SupabaseContextType {
   getExperience: () => Promise<Experience[]>;
   getSkills: () => Promise<Skill[]>;
   getCertificates: () => Promise<Certificate[]>;
+  getCertificate: (id: string) => Promise<Certificate | null>;
   submitContactForm: (name: string, email: string, message: string) => Promise<void>;
 }
 
@@ -168,6 +169,39 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const getCertificate = async (id: string): Promise<Certificate | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('certificates')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching certificate:', error);
+        throw error;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        title: data.title,
+        issuer: data.issuer,
+        date: data.date,
+        description: data.description,
+        type: data.type || 'event',
+        image_url: data.image_url || '',
+        created_at: data.created_at
+      };
+    } catch (error) {
+      console.error('Error in getCertificate:', error);
+      throw error;
+    }
+  };
+
   const submitContactForm = async (name: string, email: string, message: string): Promise<void> => {
     const { error } = await supabase.from('contact_messages').insert([
       { name, email, message }
@@ -187,6 +221,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       getExperience,
       getSkills,
       getCertificates,
+      getCertificate,
       submitContactForm
     }}>
       {children}

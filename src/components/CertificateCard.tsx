@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Award, Maximize2, Minimize2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { Certificate } from '../context/SupabaseContext';
-import { convertGoogleDriveUrl } from '../utils/imageUtils';
+import { convertGoogleDriveUrl, validateAndConvertImageUrl } from '../utils/imageUtils';
 
 interface CertificateCardProps {
   certificate: Certificate;
@@ -15,6 +15,26 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
   const { theme } = useTheme();
   const [isFullSize, setIsFullSize] = useState(false);
   const [showImageError, setShowImageError] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>('');
+
+  useEffect(() => {
+    const loadImage = async () => {
+      if (!certificate.image_url) {
+        setShowImageError(true);
+        return;
+      }
+
+      try {
+        const url = await validateAndConvertImageUrl(certificate.image_url);
+        setImageUrl(url);
+      } catch (error) {
+        console.error('Error loading image:', error);
+        setShowImageError(true);
+      }
+    };
+
+    loadImage();
+  }, [certificate.image_url]);
 
   const toggleFullSize = () => {
     setIsFullSize(!isFullSize);
@@ -43,9 +63,9 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
       >
         <Link to={`/certificates/${certificate.id}`} className="block cursor-pointer">
           <div className="relative aspect-[4/3] overflow-hidden">
-            {!showImageError ? (
+            {!showImageError && imageUrl ? (
               <img 
-                src={convertGoogleDriveUrl(certificate.image_url)} 
+                src={imageUrl} 
                 alt={certificate.title} 
                 className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110 cursor-pointer"
                 onClick={toggleFullSize}
@@ -110,7 +130,7 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ certificate, index })
             </button>
             
             <img
-              src={convertGoogleDriveUrl(certificate.image_url)}
+              src={imageUrl}
               alt={certificate.title}
               className="max-w-full max-h-full object-contain"
               onClick={toggleFullSize}

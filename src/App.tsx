@@ -16,6 +16,7 @@ import Testimonials from './pages/Testimonials';
 import { SupabaseProvider } from './context/SupabaseContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { AuthProvider } from './context/AuthContext';
+import CertificateDetail from './components/CertificateDetail';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                     <Route path="/portfolio" element={<Portfolio />} />
                     <Route path="/experience" element={<Experience />} />
                     <Route path="/certificates" element={<Certificates />} />
+                    <Route path="/certificates/:id" element={<CertificateDetail />} />
                     <Route path="/achievements" element={<Achievements />} />
                     <Route path="/testimonials" element={<Testimonials />} />
                     <Route path="/contact" element={<Contact />} />
