@@ -19,8 +19,12 @@ const Footer: React.FC = () => {
     }`}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-xl font-bold mb-4 text-blue-600">Afnan Ul Haq</h3>
+          <div className="h-full flex flex-col justify-center">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="footer-logo mb-4"
+            />
             <p className={`mb-4 ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
             }`}>

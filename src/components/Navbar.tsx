@@ -53,7 +53,11 @@ const Navbar: React.FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <NavLink to="/" className="flex items-center space-x-2">
-            <span className="text-xl md:text-2xl font-bold text-blue-600">A<span className="text-sm">fnan</span></span>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="navbar-logo"
+            />
           </NavLink>
 
           <nav className="hidden md:flex space-x-8">

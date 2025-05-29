@@ -163,7 +163,11 @@ const About: React.FC = () => {
                 <div className={`w-full max-w-[250px] h-[250px] rounded-lg ${
                   theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
                 } flex items-center justify-center`}>
-                  <p className="text-gray-500">No profile picture available</p>
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
+                    className="about-logo"
+                  />
                 </div>
               )}
               
