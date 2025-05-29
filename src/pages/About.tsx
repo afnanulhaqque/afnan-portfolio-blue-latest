@@ -131,13 +131,14 @@ const About: React.FC = () => {
           <span className="text-blue-600">Me</span>
         </h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Left Column - Profile Picture and Personal Info */}
-          <div className="md:col-span-1 space-y-6">
+          <div className="md:col-span-1">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              className="flex flex-col items-center md:items-start"
             >
               {contentLoading ? (
                 <div className={`w-full max-w-[250px] h-[250px] rounded-lg ${
@@ -146,7 +147,7 @@ const About: React.FC = () => {
                   <Loader size={24} className="animate-spin text-blue-600" />
                 </div>
               ) : profilePicture?.image_url ? (
-                <div className="mb-6">
+                <div className="mb-6 flex justify-center md:justify-start">
                   <img
                     src={profilePicture.image_url}
                     alt="Afnan Ul Haq"
@@ -166,30 +167,30 @@ const About: React.FC = () => {
                 </div>
               )}
               
-              <div className={`p-6 rounded-lg ${
+              <div className={`p-6 rounded-lg w-full ${
                 theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'
               }`}>
-                <h3 className="text-xl font-semibold mb-4">Personal Info</h3>
+                <h3 className="text-xl font-semibold mb-4 text-center md:text-left">Personal Info</h3>
                 <ul className="space-y-3">
-                  <li className="flex flex-col">
+                  <li className="flex flex-col items-center md:items-start">
                     <span className={`text-sm ${
                       theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                     }`}>Name</span>
                     <span className="font-medium">Afnan Ul Haq</span>
                   </li>
-                  <li className="flex flex-col">
+                  <li className="flex flex-col items-center md:items-start">
                     <span className={`text-sm ${
                       theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                     }`}>Study</span>
                     <span className="font-medium">BS Information Technology</span>
                   </li>
-                  <li className="flex flex-col">
+                  <li className="flex flex-col items-center md:items-start">
                     <span className={`text-sm ${
                       theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                     }`}>Institution</span>
                     <span className="font-medium">International Islamic University Islamabad</span>
                   </li>
-                  <li className="flex flex-col">
+                  <li className="flex flex-col items-center md:items-start">
                     <span className={`text-sm ${
                       theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                     }`}>Email</span>
@@ -201,14 +202,14 @@ const About: React.FC = () => {
           </div>
           
           {/* Right Column - About Me */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className="h-full"
             >
-              <h2 className="text-2xl font-bold mb-6">Who am I?</h2>
+              <h2 className="text-2xl font-bold mb-6 text-center md:text-left">Who am I?</h2>
               
               {contentLoading ? (
                 <div className="space-y-4 mb-8">

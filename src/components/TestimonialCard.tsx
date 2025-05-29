@@ -67,9 +67,9 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, index })
         theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
       }`}
     >
-      <div className="flex items-center mb-4">
+      <div className="flex items-start gap-4 mb-4">
         {testimonial.image_url ? (
-          <div className="w-16 h-16 rounded-full overflow-hidden mb-4 relative">
+          <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
             {isLoading ? (
               <div className={`w-full h-full flex items-center justify-center ${
                 theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
@@ -87,11 +87,11 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, index })
             )}
           </div>
         ) : (
-          <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl mb-4">
+          <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
             {testimonial.name.charAt(0)}
           </div>
         )}
-        <div>
+        <div className="flex-1">
           <h3 className={`font-semibold ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>{testimonial.name}</h3>
@@ -103,7 +103,7 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, index })
         </div>
       </div>
       
-      <div className="flex mb-4">
+      <div className="flex items-center mb-4">
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}

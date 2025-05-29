@@ -5,6 +5,11 @@ import { useTheme } from '../context/ThemeContext';
 import TestimonialCard from '../components/TestimonialCard';
 import UserTestimonialForm from '../components/UserTestimonialForm';
 import { useSupabase } from '../context/SupabaseContext';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 
 interface Testimonial {
   id: string;
@@ -84,10 +89,35 @@ const Testimonials: React.FC = () => {
             No testimonials available yet. Be the first to share your experience!
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {testimonials.map((testimonial, index) => (
-              <TestimonialCard key={testimonial.id} testimonial={testimonial} index={index} />
-            ))}
+          <div className="mb-12">
+            <Swiper
+              modules={[Navigation, Pagination, Autoplay]}
+              spaceBetween={30}
+              slidesPerView={1}
+              navigation
+              pagination={{ clickable: true }}
+              autoplay={{
+                delay: 5000,
+                disableOnInteraction: false,
+              }}
+              breakpoints={{
+                640: {
+                  slidesPerView: 1,
+                  spaceBetween: 20,
+                },
+                768: {
+                  slidesPerView: 2,
+                  spaceBetween: 30,
+                },
+              }}
+              className="testimonial-swiper"
+            >
+              {testimonials.map((testimonial, index) => (
+                <SwiperSlide key={testimonial.id}>
+                  <TestimonialCard testimonial={testimonial} index={index} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
           </div>
         )}
 
