@@ -56,6 +56,7 @@ interface SupabaseContextType {
   getSkills: () => Promise<Skill[]>;
   getCertificates: () => Promise<Certificate[]>;
   getCertificate: (id: string) => Promise<Certificate | null>;
+  getAbout: () => Promise<any[]>;
   submitContactForm: (name: string, email: string, message: string) => Promise<void>;
 }
 
@@ -202,6 +203,25 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const getAbout = async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('about')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching about data:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getAbout:', error);
+      return [];
+    }
+  };
+
   const submitContactForm = async (name: string, email: string, message: string): Promise<void> => {
     const { error } = await supabase.from('contact_messages').insert([
       { name, email, message }
@@ -222,6 +242,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       getSkills,
       getCertificates,
       getCertificate,
+      getAbout,
       submitContactForm
     }}>
       {children}
