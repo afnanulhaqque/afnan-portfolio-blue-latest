@@ -65,13 +65,13 @@ const Testimonials: React.FC = () => {
   }, [supabase]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-16">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-4xl font-bold mb-8">
+        <h1 className="text-4xl font-bold mb-12">
           <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>Client </span>
           <span className="text-blue-600">Testimonials</span>
         </h1>
