@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import html2pdf from 'html2pdf.js';
 import { useTheme } from '../context/ThemeContext';
-import { useSupabase, Experience, Skill, Certificate, Project } from '../context/SupabaseContext';
+import { useSupabase, Experience, Certificate, Project } from '../context/SupabaseContext';
 
 interface CVGeneratorProps {
   onGenerationComplete?: () => void;
@@ -10,17 +10,15 @@ interface CVGeneratorProps {
 
 const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
   const { theme } = useTheme();
-  const { getExperience, getSkills, getCertificates, getProjects, getAbout } = useSupabase();
+  const { getExperience, getCertificates, getProjects, getAbout } = useSupabase();
   const cvRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<{
     experiences: Experience[];
-    skills: Skill[];
     certificates: Certificate[];
     projects: Project[];
     about: any;
   }>({
     experiences: [],
-    skills: [],
     certificates: [],
     projects: [],
     about: null
@@ -30,9 +28,8 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [experiences, skills, certificates, projects, about] = await Promise.all([
+        const [experiences, certificates, projects, about] = await Promise.all([
           getExperience(),
-          getSkills(),
           getCertificates(),
           getProjects(),
           getAbout()
@@ -40,7 +37,6 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
 
         console.log('Fetched Data:', {
           experiences,
-          skills,
           certificates,
           projects,
           about
@@ -51,7 +47,6 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
 
         setData({
           experiences,
-          skills,
           certificates,
           projects,
           about: latestAbout
@@ -64,7 +59,7 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
     };
 
     fetchData();
-  }, [getExperience, getSkills, getCertificates, getProjects, getAbout]);
+  }, [getExperience, getCertificates, getProjects, getAbout]);
 
   useEffect(() => {
     const generatePDF = async () => {
@@ -116,21 +111,21 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
     <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
       <div ref={cvRef} className="cv-container" style={{ 
         width: '210mm', 
-        padding: '15mm',
+        padding: '10mm',
         backgroundColor: 'white',
         color: 'black'
       }}>
         {/* Header with Profile Info */}
         <div className="cv-header" style={{ 
           display: 'flex', 
-          marginBottom: '15px',
-          gap: '15px',
+          marginBottom: '10px',
+          gap: '10px',
           alignItems: 'center'
         }}>
           {data.about?.profile_picture && (
             <div style={{ 
-              width: '80px', 
-              height: '80px', 
+              width: '60px', 
+              height: '60px', 
               borderRadius: '50%',
               overflow: 'hidden',
               flexShrink: 0,
@@ -149,53 +144,53 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
           )}
           <div style={{ flex: 1 }}>
             <h1 style={{ 
-              fontSize: '24px', 
-              marginBottom: '4px',
+              fontSize: '20px', 
+              marginBottom: '2px',
               color: '#1a1a1a'
             }}>{data.about?.name || 'Afnan Ul Haq'}</h1>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '2px' }}>
+            <p style={{ fontSize: '12px', color: '#666', marginBottom: '1px' }}>
               {data.about?.degree || 'BS Information Technology'}
             </p>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '2px' }}>
+            <p style={{ fontSize: '12px', color: '#666', marginBottom: '1px' }}>
               {data.about?.university || 'International Islamic University Islamabad'}
             </p>
-            <p style={{ fontSize: '14px', color: '#666' }}>
+            <p style={{ fontSize: '12px', color: '#666' }}>
               {data.about?.email || 'afnanulhaq4@gmail.com'}
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '15px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           {/* Left Column */}
           <div style={{ flex: '1', maxWidth: '60%' }}>
             {/* About Section */}
             {data.about?.content && (
-              <div className="cv-section" style={{ marginBottom: '15px' }}>
+              <div className="cv-section" style={{ marginBottom: '10px' }}>
                 <h2 style={{ 
-                  fontSize: '16px', 
+                  fontSize: '14px', 
                   borderBottom: '1px solid #000', 
-                  marginBottom: '8px',
-                  paddingBottom: '3px'
+                  marginBottom: '4px',
+                  paddingBottom: '2px'
                 }}>About</h2>
-                <p style={{ fontSize: '12px', lineHeight: '1.4', color: '#333' }}>
+                <p style={{ fontSize: '11px', lineHeight: '1.3', color: '#333' }}>
                   {data.about.content}
                 </p>
               </div>
             )}
 
             {/* Experience Section */}
-            <div className="cv-section" style={{ marginBottom: '15px' }}>
+            <div className="cv-section" style={{ marginBottom: '10px' }}>
               <h2 style={{ 
-                fontSize: '16px', 
+                fontSize: '14px', 
                 borderBottom: '1px solid #000', 
-                marginBottom: '8px',
-                paddingBottom: '3px'
+                marginBottom: '4px',
+                paddingBottom: '2px'
               }}>Experience</h2>
               {data.experiences.map((exp, index) => (
-                <div key={exp.id} style={{ marginBottom: '8px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '2px' }}>{exp.position}</h3>
-                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '1px' }}>{exp.organization}</p>
-                  <p style={{ fontSize: '12px', color: '#666' }}>
+                <div key={exp.id} style={{ marginBottom: '4px' }}>
+                  <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '1px' }}>{exp.position}</h3>
+                  <p style={{ fontSize: '11px', color: '#666', marginBottom: '1px' }}>{exp.organization}</p>
+                  <p style={{ fontSize: '11px', color: '#666' }}>
                     {formatDate(exp.start_date)} - {formatDate(exp.end_date)}
                   </p>
                 </div>
@@ -203,24 +198,24 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
             </div>
 
             {/* Projects Section */}
-            <div className="cv-section" style={{ marginBottom: '15px' }}>
+            <div className="cv-section" style={{ marginBottom: '10px' }}>
               <h2 style={{ 
-                fontSize: '16px', 
+                fontSize: '14px', 
                 borderBottom: '1px solid #000', 
-                marginBottom: '8px',
-                paddingBottom: '3px'
+                marginBottom: '4px',
+                paddingBottom: '2px'
               }}>Projects</h2>
               {data.projects.map((project) => (
-                <div key={project.id} style={{ marginBottom: '8px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '2px' }}>{project.title}</h3>
+                <div key={project.id} style={{ marginBottom: '4px' }}>
+                  <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '1px' }}>{project.title}</h3>
                   {project.tags && typeof project.tags === 'string' && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
                       {project.tags.split(',').map((tag, index) => (
                         <span key={index} style={{ 
-                          padding: '2px 6px', 
+                          padding: '1px 4px', 
                           backgroundColor: '#f0f0f0', 
-                          borderRadius: '3px',
-                          fontSize: '10px'
+                          borderRadius: '2px',
+                          fontSize: '9px'
                         }}>
                           {tag.trim()}
                         </span>
@@ -234,41 +229,19 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
 
           {/* Right Column */}
           <div style={{ flex: '1', maxWidth: '40%' }}>
-            {/* Skills Section */}
-            <div className="cv-section" style={{ marginBottom: '15px' }}>
-              <h2 style={{ 
-                fontSize: '16px', 
-                borderBottom: '1px solid #000', 
-                marginBottom: '8px',
-                paddingBottom: '3px'
-              }}>Skills</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {data.skills.map((skill) => (
-                  <div key={skill.id} style={{ 
-                    padding: '4px 8px', 
-                    backgroundColor: '#f0f0f0', 
-                    borderRadius: '3px',
-                    fontSize: '12px'
-                  }}>
-                    {skill.name} ({skill.level}/5)
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Certificates Section */}
-            <div className="cv-section" style={{ marginBottom: '15px' }}>
+            <div className="cv-section" style={{ marginBottom: '10px' }}>
               <h2 style={{ 
-                fontSize: '16px', 
+                fontSize: '14px', 
                 borderBottom: '1px solid #000', 
-                marginBottom: '8px',
-                paddingBottom: '3px'
+                marginBottom: '4px',
+                paddingBottom: '2px'
               }}>Certificates</h2>
               {data.certificates.map((cert) => (
-                <div key={cert.id} style={{ marginBottom: '8px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '2px' }}>{cert.title}</h3>
-                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '1px' }}>{cert.issuer}</p>
-                  <p style={{ fontSize: '12px', color: '#666' }}>
+                <div key={cert.id} style={{ marginBottom: '4px' }}>
+                  <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '1px' }}>{cert.title}</h3>
+                  <p style={{ fontSize: '11px', color: '#666', marginBottom: '1px' }}>{cert.issuer}</p>
+                  <p style={{ fontSize: '11px', color: '#666' }}>
                     {new Date(cert.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                   </p>
                 </div>
