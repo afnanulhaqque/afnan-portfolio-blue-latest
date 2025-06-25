@@ -9,6 +9,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import { validateAndConvertImageUrl } from '../utils/imageUtils';
 import { compressImage } from '../utils/imageUtils';
 import CertificateDetail from '../components/CertificateDetail';
+import { FcGoogle } from 'react-icons/fc';
+import { FaFacebook } from 'react-icons/fa';
 
 type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements' | 'about';
 
@@ -1162,6 +1164,18 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Handler for Google login
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    if (error) setLoginError(error.message);
+  };
+
+  // Handler for Facebook login
+  const handleFacebookLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'facebook' });
+    if (error) setLoginError(error.message);
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="pt-20">
@@ -1231,6 +1245,26 @@ const Admin: React.FC = () => {
             </button>
           </form>
         </motion.div>
+        <div className="flex justify-center gap-3 mt-4">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            aria-label="Sign in with Google"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-900 text-white border border-gray-700 hover:bg-gray-800 transition-colors duration-300 shadow-sm focus:outline-none"
+            title="Sign in with Google"
+          >
+            <svg width="22" height="22" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M44.5 20H24v8.5h11.7C34.7 33.1 30.1 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c2.7 0 5.2.9 7.2 2.5l6.4-6.4C34.5 5.1 29.5 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 19.5-7.6 21-18h-21v-9z"></path></g></svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleFacebookLogin}
+            aria-label="Sign in with Facebook"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-900 text-white border border-gray-700 hover:bg-gray-800 transition-colors duration-300 shadow-sm focus:outline-none"
+            title="Sign in with Facebook"
+          >
+            <svg width="22" height="22" viewBox="0 0 48 48"><path fill="#1877F2" d="M24 4C12.95 4 4 12.95 4 24c0 9.95 7.16 18.17 16.5 19.74V30.5h-5v-6.5h5v-4.5c0-5.07 3.07-7.84 7.56-7.84 2.15 0 4.39.38 4.39.38v4.82h-2.47c-2.44 0-3.2 1.52-3.2 3.08v3.56h5.44l-.87 6.5h-4.57v13.24C36.84 42.17 44 33.95 44 24c0-11.05-8.95-20-20-20z"></path></svg>
+          </button>
+        </div>
       </div>
     );
   }
