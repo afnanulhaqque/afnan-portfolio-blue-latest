@@ -185,7 +185,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           </a>
           {isEditable && (
             <a 
-              href={`https://github.com/afnanulhaquee/${project.link.split('/').pop()}`}
+              href={`https://github.com/afnanulhaque/${project.link.split('/').pop()}`}
               target="_blank"
               rel="noopener noreferrer"
               className={`flex items-center space-x-1 text-sm transition-colors duration-300 ${

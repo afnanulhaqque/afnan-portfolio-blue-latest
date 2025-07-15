@@ -110,22 +110,6 @@ const Home: React.FC = () => {
           </motion.div>
         </motion.div>
         
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          className="absolute bottom-10 left-0 right-0 flex justify-center"
-        >
-          <button
-            onClick={scrollToAbout}
-            className={`p-2 rounded-full animate-bounce ${
-              theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
-            }`}
-            aria-label="Scroll Down"
-          >
-            <ChevronDown size={24} />
-          </button>
-        </motion.div>
       </section>
 
       {showCVGenerator && (

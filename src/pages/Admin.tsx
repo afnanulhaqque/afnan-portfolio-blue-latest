@@ -12,7 +12,7 @@ import CertificateDetail from '../components/CertificateDetail';
 import { FcGoogle } from 'react-icons/fc';
 import { FaFacebook } from 'react-icons/fa';
 
-type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'cv' | 'testimonials' | 'achievements' | 'about';
+type ContentType = 'messages' | 'projects' | 'experiences' | 'skills' | 'certificates' | 'testimonials' | 'achievements' | 'about';
 
 interface Testimonial {
   id: string;
@@ -79,8 +79,6 @@ const Admin: React.FC = () => {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [cvLink, setCvLink] = useState('');
-  const [cvLinkLoading, setCvLinkLoading] = useState(false);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [achievementForm, setAchievementForm] = useState<AchievementForm>({
@@ -344,16 +342,17 @@ const Admin: React.FC = () => {
       const { data: profileData, error: profileError } = await supabase
         .from('profile_picture')
         .select('*')
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (profileError) {
         console.error('Error fetching profile picture:', profileError);
         throw profileError;
       }
 
-      if (profileData) {
-        setProfilePicture(profileData);
-        setProfileImagePreview(profileData.image_url);
+      if (profileData && profileData.length > 0) {
+        setProfilePicture(profileData[0]);
+        setProfileImagePreview(profileData[0].image_url);
       }
 
     } catch (error) {
@@ -918,12 +917,11 @@ const Admin: React.FC = () => {
       const { data, error } = await supabase
         .from('cv')
         .select('link')
-        .maybeSingle();
-      
+        .order('created_at', { ascending: false })
+        .limit(1);
       console.log('CV link fetch result:', { data, error });
-      
-      if (!error && data?.link) {
-        setCvLink(data.link);
+      if (!error && data && data.length > 0 && data[0].link) {
+        setCvLink(data[0].link);
       } else {
         console.log('No CV link found or error occurred:', error);
       }
@@ -1255,15 +1253,6 @@ const Admin: React.FC = () => {
           >
             <svg width="22" height="22" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M44.5 20H24v8.5h11.7C34.7 33.1 30.1 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c2.7 0 5.2.9 7.2 2.5l6.4-6.4C34.5 5.1 29.5 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 19.5-7.6 21-18h-21v-9z"></path></g></svg>
           </button>
-          <button
-            type="button"
-            onClick={handleFacebookLogin}
-            aria-label="Sign in with Facebook"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-900 text-white border border-gray-700 hover:bg-gray-800 transition-colors duration-300 shadow-sm focus:outline-none"
-            title="Sign in with Facebook"
-          >
-            <svg width="22" height="22" viewBox="0 0 48 48"><path fill="#1877F2" d="M24 4C12.95 4 4 12.95 4 24c0 9.95 7.16 18.17 16.5 19.74V30.5h-5v-6.5h5v-4.5c0-5.07 3.07-7.84 7.56-7.84 2.15 0 4.39.38 4.39.38v4.82h-2.47c-2.44 0-3.2 1.52-3.2 3.08v3.56h5.44l-.87 6.5h-4.57v13.24C36.84 42.17 44 33.95 44 24c0-11.05-8.95-20-20-20z"></path></svg>
-          </button>
         </div>
       </div>
     );
@@ -1360,18 +1349,6 @@ const Admin: React.FC = () => {
           }`}
         >
           Certificates
-        </button>
-        <button
-          onClick={() => setActiveContent('cv')}
-          className={`px-4 py-2 rounded-md transition-colors duration-300 ${
-            activeContent === 'cv'
-              ? 'bg-blue-600 text-white'
-              : theme === 'dark'
-                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          CV
         </button>
         <button
           onClick={() => setActiveContent('testimonials')}
@@ -2285,76 +2262,6 @@ const Admin: React.FC = () => {
             </div>
           )}
 
-          {/* CV Section */}
-          {activeContent === 'cv' && (
-            <div className="mb-8">
-              <h2 className={`text-2xl font-bold mb-4 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>Manage CV Link</h2>
-              <div className={`p-6 rounded-lg shadow-lg ${
-                theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-              }`}>
-                <form onSubmit={handleCvLinkSave} className="space-y-4">
-                  <div>
-                    <label className={`block text-sm font-medium ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      CV Link
-                    </label>
-                    <input
-                      type="text"
-                      value={cvLink}
-                      onChange={(e) => setCvLink(e.target.value)}
-                      className={`mt-1 block w-full rounded-md ${
-                        theme === 'dark'
-                          ? 'bg-gray-700 border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                      placeholder="Enter your CV link"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={cvLinkLoading}
-                    className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300 disabled:opacity-50"
-                  >
-                    {cvLinkLoading ? 'Saving...' : 'Save CV Link'}
-                  </button>
-                </form>
-
-                {/* Display existing CV link and test button */}
-                {cvLink && (
-                  <div className="mt-4">
-                     <h3 className={`text-lg font-bold mb-2 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Current CV Link:</h3>
-                    <a
-                      href={cvLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`break-all text-blue-600 hover:underline ${
-                        theme === 'dark' ? 'hover:text-blue-400' : ''
-                      }`}
-                    >
-                      {cvLink}
-                    </a>
-                     <a
-                      href={cvLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`inline-flex items-center text-blue-600 hover:text-blue-700 mt-2 ${
-                        theme === 'dark' ? 'hover:text-blue-400' : ''
-                      }`}
-                    >
-                      <Download size={16} className="mr-2" />
-                      Test Current CV Link
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Testimonials Section */}
           {activeContent === 'testimonials' && (
             <div>
@@ -2482,6 +2389,119 @@ const Admin: React.FC = () => {
                   ))
                 )}
               </div>
+
+              {/* Testimonial Form for Add/Edit */}
+              <form
+                ref={testimonialFormRef}
+                onSubmit={handleTestimonialSubmit}
+                className={`mt-10 p-6 rounded-lg ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}
+              >
+                <h2 className="text-2xl font-bold mb-4">
+                  {editingId ? 'Edit Testimonial' : 'Add New Testimonial'}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Name</label>
+                    <input
+                      type="text"
+                      value={testimonialForm.name}
+                      onChange={e => setTestimonialForm({ ...testimonialForm, name: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Position</label>
+                    <input
+                      type="text"
+                      value={testimonialForm.position}
+                      onChange={e => setTestimonialForm({ ...testimonialForm, position: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Company</label>
+                    <input
+                      type="text"
+                      value={testimonialForm.company}
+                      onChange={e => setTestimonialForm({ ...testimonialForm, company: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Rating</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={testimonialForm.rating}
+                      onChange={e => setTestimonialForm({ ...testimonialForm, rating: Number(e.target.value) })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Content</label>
+                    <textarea
+                      value={testimonialForm.content}
+                      onChange={e => setTestimonialForm({ ...testimonialForm, content: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      rows={3}
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Image URL (optional)</label>
+                    <input
+                      type="text"
+                      value={testimonialForm.image_url}
+                      onChange={e => setTestimonialForm({ ...testimonialForm, image_url: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                    />
+                  </div>
+                  <div className="md:col-span-2 flex items-center gap-4 mt-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={testimonialForm.is_approved}
+                        onChange={e => setTestimonialForm({ ...testimonialForm, is_approved: e.target.checked })}
+                        className="mr-2"
+                      />
+                      <span>Approved</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-4">
+                  <button
+                    type="submit"
+                    className="px-6 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  >
+                    {editingId ? 'Update Testimonial' : 'Add Testimonial'}
+                  </button>
+                  {editingId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(null);
+                        setTestimonialForm({
+                          name: '',
+                          position: '',
+                          company: '',
+                          content: '',
+                          rating: 5,
+                          image_url: '',
+                          is_approved: false
+                        });
+                      }}
+                      className="px-6 py-2 rounded bg-gray-400 text-white hover:bg-gray-500 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
           )}
 

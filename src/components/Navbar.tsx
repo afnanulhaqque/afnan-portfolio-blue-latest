@@ -69,7 +69,7 @@ const Navbar: React.FC = () => {
                   relative px-1 py-2 text-sm font-medium transition-colors duration-300
                   ${isActive 
                     ? 'text-blue-600' 
-                    : theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-black'}
+                    : 'text-gray-300 hover:text-white'}
                 `}
               >
                 {({ isActive }) => (
@@ -87,42 +87,26 @@ const Navbar: React.FC = () => {
             ))}
           </nav>
 
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full transition-colors duration-300"
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          {isAdmin && (
+            <NavLink
+              to="/admin"
+              className={`p-2 rounded-full transition-colors duration-300 text-gray-300 hover:text-white`}
             >
-              {theme === 'dark' ? (
-                <Sun size={20} className="text-gray-300 hover:text-white transition-colors" />
-              ) : (
-                <Moon size={20} className="text-gray-700 hover:text-black transition-colors" />
-              )}
-            </button>
+              <Shield size={20} />
+            </NavLink>
+          )}
 
-            {isAdmin && (
-              <NavLink
-                to="/admin"
-                className={`p-2 rounded-full transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-black'
-                }`}
-              >
-                <Shield size={20} />
-              </NavLink>
+          <button
+            onClick={toggleMenu}
+            className="md:hidden p-2 rounded-full transition-colors"
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? (
+              <X size={24} className="text-white" />
+            ) : (
+              <Menu size={24} className="text-white" />
             )}
-
-            <button
-              onClick={toggleMenu}
-              className="md:hidden p-2 rounded-full transition-colors"
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? (
-                <X size={24} className={theme === 'dark' ? 'text-white' : 'text-black'} />
-              ) : (
-                <Menu size={24} className={theme === 'dark' ? 'text-white' : 'text-black'} />
-              )}
-            </button>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -130,9 +114,7 @@ const Navbar: React.FC = () => {
         initial={false}
         animate={{ height: isMenuOpen ? 'auto' : 0, opacity: isMenuOpen ? 1 : 0 }}
         transition={{ duration: 0.3 }}
-        className={`md:hidden overflow-hidden ${
-          theme === 'dark' ? 'bg-gray-900' : 'bg-white'
-        }`}
+        className="md:hidden overflow-hidden bg-gray-900"
       >
         <div className="container mx-auto px-4 py-4 space-y-3">
           {navLinks.map((link) => (
@@ -143,9 +125,7 @@ const Navbar: React.FC = () => {
                 block py-2 px-3 rounded-md text-center transition-colors duration-300
                 ${isActive 
                   ? 'bg-blue-600 text-white' 
-                  : theme === 'dark' 
-                    ? 'text-gray-300 hover:bg-gray-800 hover:text-white' 
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-black'}
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'}
               `}
             >
               {link.name}

@@ -46,7 +46,7 @@ const Footer: React.FC = () => {
                 <Linkedin size={18} />
               </a>
               <a 
-                href="https://github.com/afnanulhaquee" 
+                href="https://github.com/afnanulhaqque" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={`p-2 rounded-full transition-colors duration-300 ${

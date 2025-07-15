@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 export type Project = {
   id: string;
@@ -62,11 +62,7 @@ interface SupabaseContextType {
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -80,15 +76,14 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setIsAdmin(false);
         return;
       }
-
+      // Use 'profiles' instead of 'users' for is_approved
       const { data: userData, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('is_approved')
         .eq('id', user.id)
-        .single();
-
+        .limit(1);
       if (error) throw error;
-      setIsAdmin(!!userData?.is_approved);
+      setIsAdmin(!!(userData && userData[0]?.is_approved));
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
