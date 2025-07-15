@@ -355,6 +355,17 @@ const Admin: React.FC = () => {
         setProfileImagePreview(profileData[0].image_url);
       }
 
+      // Fetch social links
+      const { data: socialLinksData, error: socialLinksError } = await supabase
+        .from('social_links')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (socialLinksError) {
+        console.error('Error fetching social links:', socialLinksError);
+        throw socialLinksError;
+      }
+      setSocialLinks(socialLinksData || []);
+
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -1172,6 +1183,77 @@ const Admin: React.FC = () => {
   const handleFacebookLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'facebook' });
     if (error) setLoginError(error.message);
+  };
+
+  // Add state for social links
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [socialLinkForm, setSocialLinkForm] = useState({
+    id: '',
+    platform: '',
+    url: '',
+    icon: ''
+  });
+  const [editingSocialLinkId, setEditingSocialLinkId] = useState<string | null>(null);
+
+  // Add handlers for CRUD
+  const handleSocialLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingSocialLinkId) {
+        // Update
+        const { error } = await supabase
+          .from('social_links')
+          .update({
+            platform: socialLinkForm.platform,
+            url: socialLinkForm.url,
+            icon: socialLinkForm.icon
+          })
+          .eq('id', editingSocialLinkId);
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('social_links')
+          .insert([
+            {
+              platform: socialLinkForm.platform,
+              url: socialLinkForm.url,
+              icon: socialLinkForm.icon
+            }
+          ]);
+        if (error) throw error;
+      }
+      setSocialLinkForm({ id: '', platform: '', url: '', icon: '' });
+      setEditingSocialLinkId(null);
+      await fetchAllData();
+      setNotification({ message: 'Social link saved successfully!', type: 'success', isVisible: true });
+    } catch (error) {
+      setNotification({ message: 'Failed to save social link: ' + (error as Error).message, type: 'error', isVisible: true });
+    }
+  };
+
+  const handleEditSocialLink = (link) => {
+    setSocialLinkForm({
+      id: link.id,
+      platform: link.platform,
+      url: link.url,
+      icon: link.icon || ''
+    });
+    setEditingSocialLinkId(link.id);
+  };
+
+  const handleDeleteSocialLink = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('social_links')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      await fetchAllData();
+      setNotification({ message: 'Social link deleted successfully!', type: 'success', isVisible: true });
+    } catch (error) {
+      setNotification({ message: 'Failed to delete social link: ' + (error as Error).message, type: 'error', isVisible: true });
+    }
   };
 
   if (!isAuthenticated) {
@@ -2824,6 +2906,78 @@ const Admin: React.FC = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Social Links Management */}
+              <div className={`p-6 rounded-lg ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+                <h2 className="text-2xl font-bold mb-4">Social Links</h2>
+                <form onSubmit={handleSocialLinkSubmit} className="mb-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Platform</label>
+                    <input
+                      type="text"
+                      value={socialLinkForm.platform}
+                      onChange={e => setSocialLinkForm({ ...socialLinkForm, platform: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">URL</label>
+                    <input
+                      type="url"
+                      value={socialLinkForm.url}
+                      onChange={e => setSocialLinkForm({ ...socialLinkForm, url: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Icon (optional)</label>
+                    <input
+                      type="text"
+                      value={socialLinkForm.icon}
+                      onChange={e => setSocialLinkForm({ ...socialLinkForm, icon: e.target.value })}
+                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                      placeholder="e.g. linkedin, github, twitter"
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
+                    >
+                      {editingSocialLinkId ? 'Update' : 'Add'} Social Link
+                    </button>
+                    {editingSocialLinkId && (
+                      <button
+                        type="button"
+                        onClick={() => { setSocialLinkForm({ id: '', platform: '', url: '', icon: '' }); setEditingSocialLinkId(null); }}
+                        className="ml-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+                <div className="space-y-2">
+                  {socialLinks.length === 0 ? (
+                    <div className="text-center py-4 text-gray-400">No social links added yet.</div>
+                  ) : (
+                    socialLinks.map(link => (
+                      <div key={link.id} className="flex items-center justify-between p-2 rounded bg-gray-800">
+                        <div>
+                          <span className="font-semibold">{link.platform}</span>: <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{link.url}</a>
+                          {link.icon && <span className="ml-2 text-xs text-gray-400">({link.icon})</span>}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleEditSocialLink(link)} className="p-1 text-blue-400 hover:text-blue-200">Edit</button>
+                          <button onClick={() => handleDeleteSocialLink(link.id)} className="p-1 text-red-400 hover:text-red-200">Delete</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           )}
