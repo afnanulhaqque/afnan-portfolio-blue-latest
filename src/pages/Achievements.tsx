@@ -4,6 +4,7 @@ import { useSupabase } from '../context/SupabaseContext';
 import { Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { convertGoogleDriveUrl } from '../utils/imageUtils';
+import Loader from '../components/Loader';
 
 interface Achievement {
   id: number;
@@ -53,6 +54,10 @@ const Achievements: React.FC = () => {
 
     fetchAchievements();
   }, [supabase]);
+
+  if (loading) {
+    return <Loader />;
+  }
 
   return (
     <div className="pt-20">

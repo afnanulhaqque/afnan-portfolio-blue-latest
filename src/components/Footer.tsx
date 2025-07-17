@@ -23,11 +23,12 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const Footer: React.FC = () => {
   const { theme } = useTheme();
-  const { getSocialLinks, getAbout } = useSupabase();
+  const { getSocialLinks, getAboutCached } = useSupabase();
   const year = new Date().getFullYear();
   const navigate = useNavigate();
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  const [footerBio, setFooterBio] = useState('');
+  const [footerBio, setFooterBio] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchLinks = async () => {
@@ -39,17 +40,22 @@ const Footer: React.FC = () => {
 
   useEffect(() => {
     const fetchFooterBio = async () => {
+      setLoading(true);
       try {
-        const aboutData = await getAbout();
+        const aboutData = await getAboutCached();
         if (aboutData && aboutData.length > 0 && aboutData[0].footer_bio) {
           setFooterBio(aboutData[0].footer_bio);
+        } else {
+          setFooterBio('');
         }
       } catch (error) {
-        // ignore
+        setFooterBio('');
+      } finally {
+        setLoading(false);
       }
     };
     fetchFooterBio();
-  }, [getAbout]);
+  }, [getAboutCached]);
 
   const handleQuickLinkClick = (path: string) => {
     navigate(path);
@@ -71,8 +77,7 @@ const Footer: React.FC = () => {
             <p className={`mb-4 ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              {footerBio || 'Information Technology Undergraduate'}<br />
-              {footerBio ? '' : 'PR Lead at BlackBox AI'}
+              {loading ? '' : footerBio}
             </p>
             <div className="flex space-x-4">
               {/* Static email link */}

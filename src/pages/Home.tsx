@@ -5,6 +5,7 @@ import { ArrowRight, Download, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase } from '../context/SupabaseContext';
 import CVGenerator from '../components/CVGenerator';
+import Loader from '../components/Loader';
 
 interface AboutSection {
   tagline?: string;
@@ -43,6 +44,10 @@ const Home: React.FC = () => {
 
     fetchTagline();
   }, [supabase]);
+
+  if (taglineLoading) {
+    return <Loader />;
+  }
 
   const scrollToAbout = () => {
     const aboutSection = document.getElementById('about-section');

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, Certificate } from '../context/SupabaseContext';
 import CertificateCard from '../components/CertificateCard';
+import Loader from '../components/Loader';
 
 const Certificates: React.FC = () => {
   const { theme } = useTheme();
@@ -42,6 +43,10 @@ const Certificates: React.FC = () => {
   console.log('All certificates:', certificates);
   console.log('Current filter:', filter);
   console.log('Filtered certificates:', filteredCertificates);
+
+  if (loading) {
+    return <Loader />;
+  }
 
   return (
     <div className="pt-20">

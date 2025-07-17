@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, ExternalLink, Loader } from 'lucide-react';
+import { BookOpen, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SkillBar from '../components/SkillBar';
 import { useSupabase, Skill } from '../context/SupabaseContext';
+import Loader from '../components/Loader';
 
 interface AboutSection {
   id: string;
@@ -121,6 +122,10 @@ const About: React.FC = () => {
   const filteredSkills = selectedCategory === 'all' 
     ? skills 
     : skills.filter(skill => skill.category === selectedCategory);
+
+  if (contentLoading) {
+    return <Loader />;
+  }
 
   return (
     <div className="pt-20">

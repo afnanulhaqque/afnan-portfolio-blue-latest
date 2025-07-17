@@ -10,6 +10,7 @@ import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import Loader from '../components/Loader';
 
 interface Testimonial {
   id: string;
@@ -64,6 +65,10 @@ const Testimonials: React.FC = () => {
     fetchTestimonials();
   }, [supabase]);
 
+  if (loading) {
+    return <Loader />;
+  }
+
   return (
     <div className="container mx-auto px-4 py-16">
       <motion.div
@@ -76,13 +81,7 @@ const Testimonials: React.FC = () => {
           <span className="text-blue-600">Testimonials</span>
         </h1>
 
-        {loading ? (
-          <div className={`text-center py-8 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Loading testimonials...
-          </div>
-        ) : testimonials.length === 0 ? (
+        {testimonials.length === 0 ? (
           <div className={`text-center py-12 ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
           }`}>

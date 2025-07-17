@@ -64,6 +64,7 @@ interface SupabaseContextType {
   getCertificates: () => Promise<Certificate[]>;
   getCertificate: (id: string) => Promise<Certificate | null>;
   getAbout: () => Promise<any[]>;
+  getAboutCached: () => Promise<any[]>;
   submitContactForm: (name: string, email: string, message: string) => Promise<void>;
   getSocialLinks: () => Promise<SocialLink[]>;
 }
@@ -72,6 +73,7 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [aboutCache, setAboutCache] = useState<any[] | null>(null);
 
   useEffect(() => {
     checkAdminStatus();
@@ -218,11 +220,17 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         throw error;
       }
 
+      setAboutCache(data || []);
       return data || [];
     } catch (error) {
       console.error('Error in getAbout:', error);
       return [];
     }
+  };
+
+  const getAboutCached = async (): Promise<any[]> => {
+    if (aboutCache) return aboutCache;
+    return await getAbout();
   };
 
   const submitContactForm = async (name: string, email: string, message: string): Promise<void> => {
@@ -263,6 +271,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       getCertificates,
       getCertificate,
       getAbout,
+      getAboutCached,
       submitContactForm,
       getSocialLinks
     }}>
