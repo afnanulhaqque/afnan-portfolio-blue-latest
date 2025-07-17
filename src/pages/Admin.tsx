@@ -53,6 +53,7 @@ interface AboutSection {
   tagline?: string; // Add tagline field
   created_at: string;
   updated_at: string;
+  footer_bio?: string; // Add footer_bio field
 }
 
 interface ProfilePicture {
@@ -95,6 +96,7 @@ const Admin: React.FC = () => {
   const [profilePicture, setProfilePicture] = useState<ProfilePicture | null>(null);
   const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>('');
+  const [footerBio, setFooterBio] = useState('');
 
   // Notification state
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | ''; isVisible: boolean }>({ message: '', type: '', isVisible: false });
@@ -327,7 +329,7 @@ const Admin: React.FC = () => {
       // Fetch about section
       const { data: aboutData, error: aboutError } = await supabase
         .from('about_section')
-        .select('id, title, content, tagline') // Select tagline
+        .select('id, title, content, tagline, footer_bio') // Select tagline and footer_bio
         .single();
 
       if (aboutError) throw aboutError;
@@ -336,6 +338,7 @@ const Admin: React.FC = () => {
         setAboutSection(aboutData);
         setEditedContent(aboutData.content);
         setEditedTagline(aboutData.tagline || ''); // Set tagline state
+        setFooterBio(aboutData.footer_bio || '');
       }
 
       // Fetch profile picture
@@ -1011,7 +1014,7 @@ const Admin: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('about_section')
-        .select('id, title, content, tagline') // Select tagline
+        .select('id, title, content, tagline, footer_bio') // Select tagline and footer_bio
         .single();
 
       if (error) throw error;
@@ -1020,6 +1023,7 @@ const Admin: React.FC = () => {
         setAboutSection(data);
         setEditedContent(data.content);
         setEditedTagline(data.tagline || ''); // Set tagline state
+        setFooterBio(data.footer_bio || '');
       }
     } catch (error) {
       console.error('Error fetching about section:', error);
@@ -1030,21 +1034,15 @@ const Admin: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!aboutSection) return;
-
     try {
       const { error } = await supabase
         .from('about_section')
-        .update({ content: editedContent, tagline: editedTagline }) // Update tagline
+        .update({ content: editedContent, tagline: editedTagline, footer_bio: footerBio })
         .eq('id', aboutSection.id);
-
       if (error) throw error;
-
-      setAboutSection(prev => prev ? { ...prev, content: editedContent, tagline: editedTagline } : null);
-      showNotification('About section updated successfully', 'success');
+      showNotification('About section updated successfully!', 'success');
     } catch (error) {
-      console.error('Error updating about section:', error);
-      showNotification('Error updating about section', 'error');
+      showNotification('Failed to update about section: ' + (error as Error).message, 'error');
     }
   };
 
@@ -2914,6 +2912,17 @@ const Admin: React.FC = () => {
                             ? 'bg-gray-800 text-white border-gray-700'
                             : 'bg-white text-gray-900 border-gray-300'
                         } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Footer Info</label>
+                      <input
+                        type="text"
+                        value={footerBio}
+                        onChange={e => setFooterBio(e.target.value)}
+                        className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
+                        placeholder="e.g. Information Technology Undergraduate | PR Lead at BlackBox AI"
                       />
                     </div>
                     

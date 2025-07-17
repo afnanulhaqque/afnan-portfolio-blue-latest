@@ -209,7 +209,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const getAbout = async (): Promise<any[]> => {
     try {
       const { data, error } = await supabase
-        .from('about')
+        .from('about_section')
         .select('*')
         .order('created_at', { ascending: false });
 

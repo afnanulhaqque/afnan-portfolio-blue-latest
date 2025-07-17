@@ -154,3 +154,6 @@ CREATE POLICY "Only admins can update contact messages" ON contact_messages
   FOR UPDATE TO authenticated USING (auth.uid() IN (
     SELECT auth.uid() FROM auth.users WHERE auth.role() = 'authenticated'
   ));
+
+-- Add footer_bio column to about_section
+ALTER TABLE about_section ADD COLUMN IF NOT EXISTS footer_bio text;

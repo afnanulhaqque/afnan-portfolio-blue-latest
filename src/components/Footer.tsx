@@ -23,10 +23,11 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const Footer: React.FC = () => {
   const { theme } = useTheme();
-  const { getSocialLinks } = useSupabase();
+  const { getSocialLinks, getAbout } = useSupabase();
   const year = new Date().getFullYear();
   const navigate = useNavigate();
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+  const [footerBio, setFooterBio] = useState('');
 
   useEffect(() => {
     const fetchLinks = async () => {
@@ -35,6 +36,20 @@ const Footer: React.FC = () => {
     };
     fetchLinks();
   }, [getSocialLinks]);
+
+  useEffect(() => {
+    const fetchFooterBio = async () => {
+      try {
+        const aboutData = await getAbout();
+        if (aboutData && aboutData.length > 0 && aboutData[0].footer_bio) {
+          setFooterBio(aboutData[0].footer_bio);
+        }
+      } catch (error) {
+        // ignore
+      }
+    };
+    fetchFooterBio();
+  }, [getAbout]);
 
   const handleQuickLinkClick = (path: string) => {
     navigate(path);
@@ -56,8 +71,8 @@ const Footer: React.FC = () => {
             <p className={`mb-4 ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Information Technology Undergraduate <br />
-              PR Lead at BlackBox AI
+              {footerBio || 'Information Technology Undergraduate'}<br />
+              {footerBio ? '' : 'PR Lead at BlackBox AI'}
             </p>
             <div className="flex space-x-4">
               {/* Static email link */}
