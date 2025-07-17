@@ -48,6 +48,13 @@ export type Certificate = {
   type: 'event' | 'course';
 };
 
+export interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  icon?: string;
+}
+
 interface SupabaseContextType {
   supabase: SupabaseClient;
   isAdmin: boolean;
@@ -58,6 +65,7 @@ interface SupabaseContextType {
   getCertificate: (id: string) => Promise<Certificate | null>;
   getAbout: () => Promise<any[]>;
   submitContactForm: (name: string, email: string, message: string) => Promise<void>;
+  getSocialLinks: () => Promise<SocialLink[]>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
@@ -228,6 +236,23 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const getSocialLinks = async (): Promise<SocialLink[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('social_links')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching social links:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Error in getSocialLinks:', error);
+      return [];
+    }
+  };
+
   return (
     <SupabaseContext.Provider value={{ 
       supabase,
@@ -238,7 +263,8 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       getCertificates,
       getCertificate,
       getAbout,
-      submitContactForm
+      submitContactForm,
+      getSocialLinks
     }}>
       {children}
     </SupabaseContext.Provider>

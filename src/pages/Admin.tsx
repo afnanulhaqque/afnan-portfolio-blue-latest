@@ -1256,6 +1256,27 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Supported social platforms for dropdown
+  const SOCIAL_PLATFORMS = [
+    { label: 'Facebook', value: 'facebook' },
+    { label: 'Whatsapp', value: 'whatsapp' },
+    { label: 'LinkedIn', value: 'linkedin' },
+    { label: 'Instagram', value: 'instagram' },
+    { label: 'Tiktok', value: 'tiktok' },
+    { label: 'Reddit', value: 'reddit' },
+    { label: 'Telegram', value: 'telegram' },
+    { label: 'Discord', value: 'discord' },
+    { label: 'Twitter (X)', value: 'x' },
+    { label: 'Threads', value: 'threads' },
+    { label: 'Slack', value: 'slack' },
+    { label: 'Snapchat', value: 'snapchat' },
+    { label: 'GitHub', value: 'github' },
+    { label: 'YouTube', value: 'youtube' },
+    { label: 'Dribbble', value: 'dribbble' },
+    { label: 'Bluesky', value: 'bluesky' },
+    { label: 'Twitch', value: 'twitch' },
+  ];
+
   if (!isAuthenticated) {
     return (
       <div className="pt-20">
@@ -2914,14 +2935,24 @@ const Admin: React.FC = () => {
                 <form onSubmit={handleSocialLinkSubmit} className="mb-6 space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Platform</label>
-                    <input
-                      type="text"
+                    <select
                       value={socialLinkForm.platform}
-                      onChange={e => setSocialLinkForm({ ...socialLinkForm, platform: e.target.value })}
+                      onChange={e => {
+                        setSocialLinkForm({
+                          ...socialLinkForm,
+                          platform: e.target.value,
+                          icon: e.target.value // keep icon in sync with platform
+                        });
+                      }}
                       className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
                       required
-                    />
-            </div>
+                    >
+                      <option value="">Select Platform</option>
+                      {SOCIAL_PLATFORMS.map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">URL</label>
                     <input
@@ -2930,16 +2961,6 @@ const Admin: React.FC = () => {
                       onChange={e => setSocialLinkForm({ ...socialLinkForm, url: e.target.value })}
                       className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
                       required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Icon (optional)</label>
-                    <input
-                      type="text"
-                      value={socialLinkForm.icon}
-                      onChange={e => setSocialLinkForm({ ...socialLinkForm, icon: e.target.value })}
-                      className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
-                      placeholder="e.g. linkedin, github, twitter"
                     />
                   </div>
                   <div className="flex justify-end">

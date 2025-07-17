@@ -1,12 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Linkedin, Github, Mail, Twitter, Instagram } from 'lucide-react';
+import { Linkedin, Github, Mail, Twitter, Instagram, Facebook, Youtube, Globe, Dribbble, Slack, Twitch } from 'lucide-react';
+import { FaDiscord } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
+import { useSupabase, type SocialLink } from '../context/SupabaseContext';
+
+const iconMap: Record<string, React.ReactNode> = {
+  linkedin: <Linkedin size={18} />,
+  github: <Github size={18} />,
+  mail: <Mail size={18} />,
+  twitter: <Twitter size={18} />,
+  x: <Twitter size={18} />,
+  instagram: <Instagram size={18} />,
+  facebook: <Facebook size={18} />,
+  youtube: <Youtube size={18} />,
+  dribbble: <Dribbble size={18} />,
+  slack: <Slack size={18} />,
+  twitch: <Twitch size={18} />,
+  discord: <FaDiscord size={18} />,
+  globe: <Globe size={18} />,
+};
 
 const Footer: React.FC = () => {
   const { theme } = useTheme();
+  const { getSocialLinks } = useSupabase();
   const year = new Date().getFullYear();
   const navigate = useNavigate();
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+
+  useEffect(() => {
+    const fetchLinks = async () => {
+      const links = await getSocialLinks();
+      setSocialLinks(links);
+    };
+    fetchLinks();
+  }, [getSocialLinks]);
 
   const handleQuickLinkClick = (path: string) => {
     navigate(path);
@@ -32,69 +60,39 @@ const Footer: React.FC = () => {
               PR Lead at BlackBox AI
             </p>
             <div className="flex space-x-4">
-              <a 
-                href="https://www.linkedin.com/in/afnanulhaqque" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`p-2 rounded-full transition-colors duration-300 ${
-                  theme === 'dark' 
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
-                    : 'text-gray-600 hover:text-black hover:bg-gray-200'
-                }`}
-                aria-label="LinkedIn"
-              >
-                <Linkedin size={18} />
-              </a>
-              <a 
-                href="https://github.com/afnanulhaqque" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`p-2 rounded-full transition-colors duration-300 ${
-                  theme === 'dark' 
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
-                    : 'text-gray-600 hover:text-black hover:bg-gray-200'
-                }`}
-                aria-label="GitHub"
-              >
-                <Github size={18} />
-              </a>
-              <a 
+              {/* Static email link */}
+              <a
                 href="mailto:afnanulhaq4@gmail.com"
                 className={`p-2 rounded-full transition-colors duration-300 ${
-                  theme === 'dark' 
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                  theme === 'dark'
+                    ? 'text-gray-400 hover:text-white hover:bg-gray-800'
                     : 'text-gray-600 hover:text-black hover:bg-gray-200'
                 }`}
                 aria-label="Email"
               >
                 <Mail size={18} />
               </a>
-              <a 
-                href="https://x.com/afnanulhaqque" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`p-2 rounded-full transition-colors duration-300 ${
-                  theme === 'dark' 
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
-                    : 'text-gray-600 hover:text-black hover:bg-gray-200'
-                }`}
-                aria-label="Twitter"
-              >
-                <Twitter size={18} />
-              </a>
-              <a 
-                href="https://www.instagram.com/afnanulhaqque" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`p-2 rounded-full transition-colors duration-300 ${
-                  theme === 'dark' 
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
-                    : 'text-gray-600 hover:text-black hover:bg-gray-200'
-                }`}
-                aria-label="Instagram"
-              >
-                <Instagram size={18} />
-              </a>
+              {/* Dynamic social links */}
+              {socialLinks.map(link => {
+                const iconKey = (link.icon?.toLowerCase() || link.platform.toLowerCase());
+                if (!iconMap[iconKey]) return null;
+                return (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`p-2 rounded-full transition-colors duration-300 ${
+                      theme === 'dark'
+                        ? 'text-gray-400 hover:text-white hover:bg-gray-800'
+                        : 'text-gray-600 hover:text-black hover:bg-gray-200'
+                    }`}
+                    aria-label={link.platform}
+                  >
+                    {iconMap[iconKey]}
+                  </a>
+                );
+              })}
             </div>
           </div>
           
