@@ -2921,7 +2921,7 @@ const Admin: React.FC = () => {
                       className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
                       required
                     />
-                  </div>
+            </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">URL</label>
                     <input
