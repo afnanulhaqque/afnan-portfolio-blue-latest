@@ -25,6 +25,15 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, index })
   const { theme } = useTheme();
   const [imageUrl, setImageUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [showFullContent, setShowFullContent] = useState(false);
+
+  const MAX_LENGTH = 150; // Maximum characters to show before truncating
+
+  const truncatedContent = testimonial.content.length > MAX_LENGTH
+    ? testimonial.content.substring(0, MAX_LENGTH) + '...'
+    : testimonial.content;
+
+  const displayContent = showFullContent ? testimonial.content : truncatedContent;
 
   useEffect(() => {
     const loadImage = async () => {
@@ -115,7 +124,17 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({ testimonial, index })
       
       <p className={`${
         theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-      } italic`}>"{testimonial.content}"</p>
+      } italic`}>"{displayContent}"</p>
+      {testimonial.content.length > MAX_LENGTH && (
+        <button
+          onClick={() => setShowFullContent(!showFullContent)}
+          className={`mt-2 text-sm font-semibold ${
+            theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+          }`}
+        >
+          {showFullContent ? 'See Less' : 'See More'}
+        </button>
+      )}
     </motion.div>
   );
 };
