@@ -43,8 +43,8 @@ const Footer: React.FC = () => {
       setLoading(true);
       try {
         const aboutData = await getAboutCached();
-        if (aboutData && aboutData.length > 0 && aboutData[0].footer_bio) {
-          setFooterBio(aboutData[0].footer_bio);
+        if (aboutData && aboutData.footer_bio) {
+          setFooterBio(aboutData.footer_bio);
         } else {
           setFooterBio('');
         }

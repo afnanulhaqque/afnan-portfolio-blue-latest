@@ -73,7 +73,7 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [aboutCache, setAboutCache] = useState<any[] | null>(null);
+  const [aboutCache, setAboutCache] = useState<any | null>(null);
 
   useEffect(() => {
     checkAdminStatus();
@@ -208,27 +208,27 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const getAbout = async (): Promise<any[]> => {
+  const getAbout = async (): Promise<any> => {
     try {
       const { data, error } = await supabase
         .from('about_section')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('footer_bio')
+        .single();
 
       if (error) {
         console.error('Error fetching about data:', error);
         throw error;
       }
 
-      setAboutCache(data || []);
-      return data || [];
+      setAboutCache(data || null);
+      return data || null;
     } catch (error) {
       console.error('Error in getAbout:', error);
-      return [];
+      return null;
     }
   };
 
-  const getAboutCached = async (): Promise<any[]> => {
+  const getAboutCached = async (): Promise<any> => {
     if (aboutCache) return aboutCache;
     return await getAbout();
   };
