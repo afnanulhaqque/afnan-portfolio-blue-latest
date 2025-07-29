@@ -90,22 +90,7 @@ export const isValidGoogleDriveUrl = (url: string): boolean => {
 };
 
 export const validateAndConvertImageUrl = async (url: string): Promise<string> => {
-  if (!url) return '';
-  
-  try {
-    // If it's a Google Drive URL, try to convert and upload to ImgBB
-    if (isValidGoogleDriveUrl(url)) {
-      const convertedUrl = convertGoogleDriveUrl(url);
-      console.log('Converted Google Drive URL:', { original: url, converted: convertedUrl });
-      return await uploadToImgBB(convertedUrl);
-    }
-    
-    // If it's already a direct image URL, return as is
-    return url;
-  } catch (error) {
-    console.error('Error validating image URL:', error);
-    return url;
-  }
+  return url || '';
 };
 
 export const isValidImageUrl = (url: string): boolean => {
@@ -223,12 +208,15 @@ export const compressImage = async (file: File): Promise<File> => {
   });
 };
 
+// handleImageUpload: Only images up to 10MB are allowed. Throws error if file is too large.
 export const handleImageUpload = async (file: File): Promise<string> => {
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error('Image size must be less than 10 MB');
+  }
   try {
     if (!validateImageFile(file)) {
       throw new Error('Invalid image file');
     }
-
     const compressedFile = await compressImage(file);
     const base64String = await convertFileToBase64(compressedFile);
     return base64String;

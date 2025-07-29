@@ -2853,6 +2853,10 @@ const Admin: React.FC = () => {
                       />
                     </div>
                     <div className="flex-1">
+                      <label className="block text-sm font-medium mb-1">
+                        Profile Picture
+                      </label>
+                      <p className={`text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Only images up to 10MB are allowed.</p>
                       <input
                         type="file"
                         accept="image/*"
@@ -2861,11 +2865,6 @@ const Admin: React.FC = () => {
                           theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
                         }`}
                       />
-                      <p className={`mt-2 text-sm ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Upload a new profile picture (max 5MB, JPG, PNG, GIF, or WebP)
-                      </p>
                     </div>
                   </div>
                   

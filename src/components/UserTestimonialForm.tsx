@@ -23,6 +23,10 @@ const UserTestimonialForm: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10 MB
+        showNotification('Image size must be less than 10 MB', 'error');
+        return;
+      }
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -40,6 +44,11 @@ const UserTestimonialForm: React.FC = () => {
       let imageUrl = null;
 
       if (selectedImage) {
+        if (selectedImage.size > 10 * 1024 * 1024) { // 10 MB
+          showNotification('Image size must be less than 10 MB', 'error');
+          setLoading(false);
+          return;
+        }
         // Compress the image before uploading
         const compressedImage = await compressImage(selectedImage);
         
