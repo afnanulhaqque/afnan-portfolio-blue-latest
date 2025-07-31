@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Linkedin, Github, Mail, Twitter, Instagram, Facebook, Youtube, Globe, Dribbble, Slack, Twitch } from 'lucide-react';
-import { FaDiscord } from 'react-icons/fa';
+import { FaDiscord, FaRedditAlien, FaSnapchatGhost } from 'react-icons/fa';
+import { BsFillCloudFill, BsThreads } from 'react-icons/bs';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, type SocialLink } from '../context/SupabaseContext';
 
@@ -19,6 +20,10 @@ const iconMap: Record<string, React.ReactNode> = {
   twitch: <Twitch size={18} />,
   discord: <FaDiscord size={18} />,
   globe: <Globe size={18} />,
+  reddit: <FaRedditAlien size={18} />,
+  snapchat: <FaSnapchatGhost size={18} />,
+  bluesky: <BsFillCloudFill size={18} />,
+  threads: <BsThreads size={18} />,
 };
 
 const Footer: React.FC = () => {
@@ -29,6 +34,16 @@ const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [footerBio, setFooterBio] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const emailLink: SocialLink = {
+    id: 'email-static',
+    platform: 'mail',
+    url: 'mailto:afnanulhaq4@gmail.com',
+    icon: 'mail',
+    label: 'Email',
+  };
+
+  const allLinks = [emailLink, ...socialLinks];
 
   useEffect(() => {
     const fetchLinks = async () => {
@@ -79,26 +94,13 @@ const Footer: React.FC = () => {
             }`}>
               {loading ? '' : footerBio}
             </p>
-            <div className="flex space-x-4">
-              {/* Static email link */}
-              <a
-                href="mailto:afnanulhaq4@gmail.com"
-                className={`p-2 rounded-full transition-colors duration-300 ${
-                  theme === 'dark'
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800'
-                    : 'text-gray-600 hover:text-black hover:bg-gray-200'
-                }`}
-                aria-label="Email"
-              >
-                <Mail size={18} />
-              </a>
-              {/* Dynamic social links */}
-              {socialLinks.map(link => {
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {allLinks.map((link, index) => {
                 const iconKey = (link.icon?.toLowerCase() || link.platform.toLowerCase());
                 if (!iconMap[iconKey]) return null;
                 return (
                   <a
-                    key={link.id}
+                    key={link.id || index} // Use index as fallback for key
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -107,7 +109,7 @@ const Footer: React.FC = () => {
                         ? 'text-gray-400 hover:text-white hover:bg-gray-800'
                         : 'text-gray-600 hover:text-black hover:bg-gray-200'
                     }`}
-                    aria-label={link.platform}
+                    aria-label={link.platform || link.label}
                   >
                     {iconMap[iconKey]}
                   </a>
