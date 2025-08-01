@@ -90,28 +90,51 @@ const Home: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
-            className="flex flex-col sm:flex-row justify-center gap-4"
+            className="flex flex-col items-center gap-4" // Changed to column and center items
           >
-            <Link
-              to="/portfolio"
-              className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
+            <div className="flex flex-col sm:flex-row justify-center gap-4"> {/* New wrapper for first two buttons */}
+              <Link
+                to="/portfolio"
+                className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
+              >
+                View My Work
+                <ArrowRight size={18} className="ml-2" />
+              </Link>
+              
+              <button
+                onClick={handleResumeDownload}
+                disabled={isLoading}
+                className={`flex items-center justify-center px-6 py-3 rounded-md transition-colors duration-300 cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 text-white hover:bg-gray-700'
+                    : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isLoading ? 'Generating CV...' : 'Download CV'}
+                <Download size={18} className="ml-2" />
+              </button>
+            </div> {/* End of new wrapper */}
+            <a 
+              href="https://www.linkedin.com/comm/mynetwork/discovery-see-all?usecase=PEOPLE_FOLLOWS&followMember=afnanulhaqque" 
+              target="_blank"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                padding: '7px',
+                textAlign: 'center',
+                outline: 'none',
+                textDecoration: 'none',
+                color: theme === 'dark' ? '#ffffff' : '#ffffff',
+                width: '200px',
+                height: '32px',
+                borderRadius: '16px',
+                backgroundColor: theme === 'dark' ? '#064282' : '#0A66C2',
+                fontFamily: '"SF Pro Text", Helvetica, sans-serif',
+              }}
             >
-              View My Work
-              <ArrowRight size={18} className="ml-2" />
-            </Link>
-            
-            <button
-              onClick={handleResumeDownload}
-              disabled={isLoading}
-              className={`flex items-center justify-center px-6 py-3 rounded-md transition-colors duration-300 cursor-pointer ${
-                theme === 'dark'
-                  ? 'bg-gray-800 text-white hover:bg-gray-700'
-                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {isLoading ? 'Generating CV...' : 'Download CV'}
-              <Download size={18} className="ml-2" />
-            </button>
+              Follow on LinkedIn
+            </a>
           </motion.div>
         </motion.div>
         
