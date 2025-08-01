@@ -119,7 +119,9 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const { data, error } = await supabase
       .from('experience')
       .select('*')
-      .order('start_date', { ascending: false });
+      .order('start_date', { ascending: false })
+      .neq('type', 'volunteer')
+      .neq('type', 'education'); // Add this line to filter out education experience
 
     if (error) {
       console.error('Error fetching experience:', error);

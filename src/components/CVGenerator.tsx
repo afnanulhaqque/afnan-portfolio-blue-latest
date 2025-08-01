@@ -1,19 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import html2pdf from 'html2pdf.js';
-import { useTheme } from '../context/ThemeContext';
-import { useSupabase, Experience, Certificate, Project, Skill } from '../context/SupabaseContext';
+import { useSupabase, Experience, Project } from '../context/SupabaseContext';
 
 interface CVGeneratorProps {
   onGenerationComplete?: () => void;
 }
 
 const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
-  const { theme } = useTheme();
-  const { getExperience, getCertificates, getProjects, getAbout, getSkills } = useSupabase();
+  const { getExperience, getProjects, getAbout } = useSupabase();
   const cvRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<{
     experiences: Experience[];
-    certificates: Certificate[];
+    certificates: any[]; // Changed to any[] as Certificate is removed
     projects: Project[];
     about: any;
   }>({
@@ -22,27 +20,23 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
     projects: [],
     about: null
   });
-  const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [experiences, certificates, projects, about, skillsData] = await Promise.all([
+        const [experiences, projects, about] = await Promise.all([
           getExperience(),
-          getCertificates(),
           getProjects(),
-          getAbout(),
-          getSkills()
+          getAbout()
         ]);
         const latestAbout = about && about.length > 0 ? about[0] : null;
         setData({
           experiences,
-          certificates,
+          certificates: [], // Remove certificates
           projects,
           about: latestAbout
         });
-        setSkills(skillsData || []);
       } catch (error) {
         console.error('Error fetching CV data:', error);
       } finally {
@@ -50,7 +44,7 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
       }
     };
     fetchData();
-  }, [getExperience, getCertificates, getProjects, getAbout, getSkills]);
+  }, [getExperience, getProjects, getAbout]); // Removed getSkills and getCertificates
 
   // Helper for dynamic fields (fallbacks)
   const about = data.about || {};
@@ -72,14 +66,6 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
     if (!dateString) return 'Present';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  };
-  // Helper to join skills by category from skills state
-  const getSkillsByCategory = (category: string) => {
-    if (!skills || !Array.isArray(skills)) return '';
-    return skills
-      .filter((s: Skill) => s.category && s.category.toLowerCase() === category.toLowerCase())
-      .map((s: Skill) => s.name)
-      .join(', ');
   };
 
   // Auto-generate and download PDF on mount (no preview)
@@ -146,15 +132,6 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
           </div>
         </div>
         <div style={{ marginBottom: 24 }}>
-          <h3 style={{ color: '#2563eb', fontSize: 20, fontWeight: 700, marginBottom: 8, borderBottom: '1px solid #e0e0e0', paddingBottom: 4 }}>SKILLS</h3>
-          <ul style={{ marginTop: 0, fontSize: 15, color: '#222', paddingLeft: 18 }}>
-            {getSkillsByCategory('language') && <li><strong>Languages:</strong> {getSkillsByCategory('language')}</li>}
-            {getSkillsByCategory('tool') && <li><strong>Tools:</strong> {getSkillsByCategory('tool')}</li>}
-            {getSkillsByCategory('framework') && <li><strong>Frameworks:</strong> {getSkillsByCategory('framework')}</li>}
-            {getSkillsByCategory('soft') && <li><strong>Soft Skills:</strong> {getSkillsByCategory('soft')}</li>}
-          </ul>
-        </div>
-        <div style={{ marginBottom: 24 }}>
           <h3 style={{ color: '#2563eb', fontSize: 20, fontWeight: 700, marginBottom: 8, borderBottom: '1px solid #e0e0e0', paddingBottom: 4 }}>PROJECTS</h3>
           <ul style={{ marginTop: 0, fontSize: 15, color: '#222', paddingLeft: 18 }}>
             {data.projects.length === 0 && (
@@ -182,19 +159,7 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
             ))}
           </ul>
         </div>
-        <div style={{ marginBottom: 0 }}>
-          <h3 style={{ color: '#2563eb', fontSize: 20, fontWeight: 700, marginBottom: 8, borderBottom: '1px solid #e0e0e0', paddingBottom: 4 }}>CERTIFICATIONS</h3>
-          <ul style={{ marginTop: 0, fontSize: 15, color: '#222', paddingLeft: 18 }}>
-            {data.certificates.length === 0 && (
-              <li>[Certificate Name] – [Provider/Year]</li>
-            )}
-            {data.certificates.map((cert) => (
-              <li key={cert.id} style={{ marginBottom: 8 }}>
-                {cert.title} – {cert.issuer}/{cert.date instanceof Date ? cert.date.getFullYear() : new Date(cert.date).getFullYear()}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Removed Certifications Section */}
       </div>
     </div>
   );
