@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { SupabaseClient } from '@supabase/supabase-js'; // Add this import
 
 export type Project = {
   id: string;
@@ -41,7 +42,7 @@ export type Certificate = {
   id: string;
   title: string;
   issuer: string;
-  date: string;
+  date: Date; // Change type from string to Date
   description: string;
   image_url: string;
   created_at: string;
@@ -119,9 +120,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const { data, error } = await supabase
       .from('experience')
       .select('*')
-      .order('start_date', { ascending: false })
-      .neq('type', 'volunteer')
-      .neq('type', 'education'); // Add this line to filter out education experience
+      .order('start_date', { ascending: false });
 
     if (error) {
       console.error('Error fetching experience:', error);

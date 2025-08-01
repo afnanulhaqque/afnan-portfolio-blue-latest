@@ -151,7 +151,9 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ onGenerationComplete }) => {
             {data.experiences.length === 0 && (
               <li><strong>Role</strong> – Company (Month Year – Month Year)<br />[Work summary]</li>
             )}
-            {data.experiences.map((exp) => (
+            {data.experiences
+              .filter((exp) => exp.type !== 'education' && exp.type !== 'volunteer') // Filter out education and volunteer experience
+              .map((exp) => (
               <li key={exp.id} style={{ marginBottom: 8 }}>
                 <strong>{exp.position}</strong> – {exp.organization} ({formatDate(exp.start_date)} – {formatDate(exp.end_date)})<br />
                 <span style={{ color: '#444' }}>{exp.description}</span>
