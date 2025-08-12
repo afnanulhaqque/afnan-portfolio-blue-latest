@@ -69,6 +69,9 @@ interface SupabaseContextType {
   getAboutCached: () => Promise<any[]>;
   submitContactForm: (name: string, email: string, message: string) => Promise<void>;
   getSocialLinks: () => Promise<SocialLink[]>;
+  projects: Project[];
+  experience: Experience[];
+  socialLinks: SocialLink[];
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
@@ -76,10 +79,70 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [aboutCache, setAboutCache] = useState<any | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [experience, setExperience] = useState<Experience[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
 
   useEffect(() => {
     checkAdminStatus();
-  }, []);
+
+    const setupRealtimeListeners = () => {
+      // Realtime listener for Projects
+      const projectChannel = supabase
+        .channel('public:projects')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'projects' }, 
+          (payload) => {
+            console.log('Change received!', payload);
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+              getProjects().then(setProjects);
+            }
+          }
+        )
+        .subscribe();
+
+      // Realtime listener for Experience
+      const experienceChannel = supabase
+        .channel('public:experience')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'experience' }, 
+          (payload) => {
+            console.log('Experience Change received!', payload);
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+              getExperience().then(setExperience);
+            }
+          }
+        )
+        .subscribe();
+
+      // Realtime listener for Social Links
+      const socialLinksChannel = supabase
+        .channel('public:social_links')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'social_links' }, 
+          (payload) => {
+            console.log('Social Links Change received!', payload);
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+              getSocialLinks().then(setSocialLinks);
+            }
+          }
+        )
+        .subscribe();
+
+      // Initial fetches
+      getProjects().then(setProjects);
+      getExperience().then(setExperience);
+      getSocialLinks().then(setSocialLinks);
+
+      return () => {
+        supabase.removeChannel(projectChannel);
+        supabase.removeChannel(experienceChannel);
+        supabase.removeChannel(socialLinksChannel);
+      };
+    };
+
+    setupRealtimeListeners();
+  }, [supabase]);
 
   const checkAdminStatus = async () => {
     try {
@@ -275,7 +338,10 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       getAbout,
       getAboutCached,
       submitContactForm,
-      getSocialLinks
+      getSocialLinks,
+      projects,
+      experience,
+      socialLinks
     }}>
       {children}
     </SupabaseContext.Provider>

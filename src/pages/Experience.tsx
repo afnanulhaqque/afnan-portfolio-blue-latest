@@ -4,32 +4,25 @@ import { useTheme } from '../context/ThemeContext';
 import ExperienceCard from '../components/ExperienceCard';
 import { useSupabase, Experience } from '../context/SupabaseContext';
 import Loader from '../components/Loader';
+import { Helmet } from 'react-helmet-async';
 
 const ExperiencePage: React.FC = () => {
   const { theme } = useTheme();
-  const { getExperience } = useSupabase();
-  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const { experience } = useSupabase(); // Use experience from context
   const [filter, setFilter] = useState<'all' | 'work' | 'education' | 'volunteer'>('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchExperience = async () => {
-      try {
-        const experienceData = await getExperience();
-        setExperiences(experienceData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching experience:', error);
-        setLoading(false);
-      }
-    };
-    
-    fetchExperience();
-  }, [getExperience]);
+    if (experience.length > 0) {
+      setLoading(false);
+    } else if (experience.length === 0 && !loading) {
+      setLoading(false);
+    }
+  }, [experience, loading]);
   
   const filteredExperiences = filter === 'all' 
-    ? experiences 
-    : experiences.filter(exp => exp.type === filter);
+    ? experience 
+    : experience.filter(exp => exp.type === filter);
 
   if (loading) {
     return <Loader />;
@@ -37,6 +30,10 @@ const ExperiencePage: React.FC = () => {
 
   return (
     <div className="pt-20">
+      <Helmet>
+        <title>Afnan Ul Haq | Experience</title>
+        <meta name="description" content="Explore the professional and educational experience of Afnan Ul Haq, including work history, academic achievements, and volunteer activities." />
+      </Helmet>
       <h1 className="text-3xl md:text-4xl font-bold mb-8">
         <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>My </span>
         <span className="text-blue-600">Experience</span>

@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import SkillBar from '../components/SkillBar';
 import { useSupabase, Skill } from '../context/SupabaseContext';
 import Loader from '../components/Loader';
+import { Helmet } from 'react-helmet-async';
 
 interface AboutSection {
   id: string;
@@ -129,6 +130,10 @@ const About: React.FC = () => {
 
   return (
     <div className="pt-20">
+      <Helmet>
+        <title>Afnan Ul Haq | About Me</title>
+        <meta name="description" content="Learn more about Afnan Ul Haq, an Information Technology Undergraduate, his education, skills, and professional aspirations." />
+      </Helmet>
       {/* About Section */}
       <section className="mb-20">
         <h1 className="text-3xl md:text-4xl font-bold mb-8">

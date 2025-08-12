@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSupabase } from '../context/SupabaseContext';
 import CVGenerator from '../components/CVGenerator';
 import Loader from '../components/Loader';
+import { Helmet } from 'react-helmet-async';
 
 interface AboutSection {
   tagline?: string;
@@ -68,6 +69,10 @@ const Home: React.FC = () => {
 
   return (
     <>
+      <Helmet>
+        <title>Afnan Ul Haq | Home</title>
+        <meta name="description" content="Welcome to the personal portfolio of Afnan Ul Haq, an Information Technology Undergraduate and Tech Enthusiast. Discover my projects, experience, and achievements." />
+      </Helmet>
       <section className="min-h-screen flex items-center justify-center relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

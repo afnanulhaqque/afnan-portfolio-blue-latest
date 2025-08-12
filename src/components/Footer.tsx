@@ -5,6 +5,7 @@ import { FaDiscord, FaRedditAlien, FaSnapchatGhost } from 'react-icons/fa';
 import { BsFillCloudFill, BsThreads } from 'react-icons/bs';
 import { useTheme } from '../context/ThemeContext';
 import { useSupabase, type SocialLink } from '../context/SupabaseContext';
+import { Helmet } from 'react-helmet-async';
 
 const iconMap: Record<string, React.ReactNode> = {
   linkedin: <Linkedin size={18} />,
@@ -28,10 +29,10 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const Footer: React.FC = () => {
   const { theme } = useTheme();
-  const { getSocialLinks, getAboutCached } = useSupabase();
+  const { socialLinks, getAboutCached } = useSupabase(); // Use socialLinks from context
   const year = new Date().getFullYear();
   const navigate = useNavigate();
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+  // const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]); // Removed local state
   const [footerBio, setFooterBio] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,16 +44,10 @@ const Footer: React.FC = () => {
     label: 'Email',
   };
 
-  const allLinks = [emailLink, ...socialLinks];
+  const allLinks = [emailLink, ...socialLinks]; // Use socialLinks from context directly
 
-  useEffect(() => {
-    const fetchLinks = async () => {
-      const links = await getSocialLinks();
-      setSocialLinks(links);
-    };
-    fetchLinks();
-  }, [getSocialLinks]);
-
+  // Removed useEffect for fetching social links, now handled by context
+  
   useEffect(() => {
     const fetchFooterBio = async () => {
       setLoading(true);
@@ -81,6 +76,10 @@ const Footer: React.FC = () => {
     <footer className={`py-8 transition-colors duration-300 ${
       theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
     }`}>
+      <Helmet>
+        <title>Afnan Ul Haq | Footer</title>
+        <meta name="description" content="Connect with Afnan Ul Haq through social media and quick links. Find contact information and navigate the portfolio." />
+      </Helmet>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="h-full flex flex-col justify-center">

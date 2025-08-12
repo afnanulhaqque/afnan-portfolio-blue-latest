@@ -4,38 +4,36 @@ import { useTheme } from '../context/ThemeContext';
 import ProjectCard from '../components/ProjectCard';
 import { useSupabase, Project } from '../context/SupabaseContext';
 import Loader from '../components/Loader';
+import { Helmet } from 'react-helmet-async';
 
 const Portfolio: React.FC = () => {
   const { theme } = useTheme();
-  const { getProjects } = useSupabase();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const { projects } = useSupabase(); // Use projects from context
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const projectsData = await getProjects();
-        setProjects(projectsData);
-        setFilteredProjects(projectsData);
-        
-        // Extract unique tags
-        const allTags = projectsData.flatMap(project => project.tags);
-        const uniqueTags = ['all', ...new Set(allTags)];
-        setTags(uniqueTags);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-        setLoading(false);
-      }
-    };
-    
-    fetchProjects();
-  }, [getProjects]);
-  
+    if (projects.length > 0) {
+      setFilteredProjects(projects);
+
+      // Extract unique tags
+      const allTags = projects.flatMap(project => project.tags);
+      const uniqueTags = ['all', ...new Set(allTags)];
+      setTags(uniqueTags);
+      setLoading(false);
+    } else if (projects.length === 0 && !loading) {
+      // If projects become empty after being loaded, update tags and filtered projects
+      setFilteredProjects([]);
+      setTags(['all']);
+    }
+    // Set loading to false once projects are loaded, even if empty
+    if (loading && projects.length > 0) {
+      setLoading(false);
+    }
+  }, [projects, loading]);
+
   useEffect(() => {
     if (filter === 'all') {
       setFilteredProjects(projects);
@@ -53,6 +51,10 @@ const Portfolio: React.FC = () => {
 
   return (
     <div className="pt-20">
+      <Helmet>
+        <title>Afnan Ul Haq | Portfolio</title>
+        <meta name="description" content="Explore the diverse portfolio of Afnan Ul Haq, showcasing various web development projects, skills, and technologies used." />
+      </Helmet>
       <h1 className="text-3xl md:text-4xl font-bold mb-8">
         <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>My </span>
         <span className="text-blue-600">Portfolio</span>
