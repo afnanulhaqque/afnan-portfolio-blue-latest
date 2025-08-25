@@ -23,6 +23,15 @@ const Achievements: React.FC = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const { supabase } = useSupabase();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+  };
+
+  const handleCloseImage = () => {
+    setSelectedImage(null);
+  };
 
   useEffect(() => {
     const fetchAchievements = async () => {
@@ -88,13 +97,16 @@ const Achievements: React.FC = () => {
                 }`}
               >
                 {achievement.image_url && (
-                  <div className="h-48 overflow-hidden">
+                  <button 
+                    className="h-48 overflow-hidden w-full focus:outline-none" 
+                    onClick={() => handleImageClick(convertGoogleDriveUrl(achievement.image_url!))}
+                  >
                     <img 
                       src={convertGoogleDriveUrl(achievement.image_url)} 
                       alt={achievement.title} 
                       className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110"
                     />
-                  </div>
+                  </button>
                 )}
                 
                 <div className="p-6">
@@ -133,6 +145,28 @@ const Achievements: React.FC = () => {
               No achievements found.
             </div>
           )}
+        </div>
+      )}
+
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={handleCloseImage}
+        >
+          <div className="relative">
+            <button
+              onClick={handleCloseImage}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors z-10 text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <img 
+              src={selectedImage} 
+              alt="Full size achievement" 
+              className="max-w-full max-h-[90vh] object-contain"
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the image
+            />
+          </div>
         </div>
       )}
     </div>
